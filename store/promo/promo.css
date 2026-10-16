@@ -1,0 +1,39 @@
+/* Promo tiles for the Chrome Web Store. Tokens come from ../../tokens.css (General Sans bundled in ../../fonts). */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); overflow: hidden; }
+.tile { position: relative; background: var(--bg); color: var(--ink); }
+.brand { font-weight: 500; letter-spacing: -0.02em; }
+h1 { margin: 0; font-weight: 400; }
+.panel { background: var(--surface); border: 1px solid var(--border); }
+.cmd { color: var(--ink-muted); }
+dl { display: grid; grid-template-columns: max-content max-content 1fr; margin: 0; }
+dt { color: var(--ink-muted); }
+dd { margin: 0; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+dd.s { text-align: left; font-weight: 400; color: var(--ink-muted); }
+dd.bad, dd.bad + dd.s { color: var(--ink); font-weight: 500; }
+.cursor { display: inline-block; background: var(--ink); vertical-align: text-bottom; }
+.pill { display: inline-block; border: 1px solid var(--ink); border-radius: var(--radius-pill); font-weight: 500; }
+.pill.fill { background: var(--action); color: var(--on-action); }
+
+/* Small tile 440 x 280 */
+.small { width: 440px; height: 280px; padding: 22px 24px; display: flex; flex-direction: column; justify-content: center; }
+.small .brand { font-size: 18px; line-height: 24px; }
+.small h1 { font-size: 34px; line-height: 38px; letter-spacing: -1px; margin-top: 6px; }
+.small .panel { margin-top: 14px; padding: 10px 14px; }
+.small .cmd { font-size: 13px; line-height: 20px; }
+.small dl { column-gap: 18px; margin-top: 2px; }
+.small dt, .small dd { font-size: 15px; line-height: 22px; }
+.small .cursor { width: 9px; height: 15px; margin-top: 4px; }
+
+/* Marquee 1400 x 560 */
+.marquee { width: 1400px; height: 560px; padding: 72px 96px; display: grid; grid-template-columns: 1fr 520px; column-gap: 96px; align-items: center; }
+.marquee .brand { font-size: 28px; line-height: 36px; }
+.marquee h1 { font-size: 84px; line-height: 88px; letter-spacing: -2.5px; margin-top: 18px; }
+.marquee p { font-size: 26px; line-height: 36px; color: var(--ink-muted); margin: 24px 0 0; }
+.marquee .pill { font-size: 20px; padding: 12px 28px; margin-top: 32px; }
+.marquee .panel { padding: 28px 32px; }
+.marquee .cmd { font-size: 20px; line-height: 30px; }
+.marquee dl { column-gap: 32px; margin-top: 12px; }
+.marquee dt, .marquee dd { font-size: 24px; line-height: 40px; }
+.marquee .cursor { width: 14px; height: 24px; margin-top: 10px; }

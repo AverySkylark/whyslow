@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhySlow: find out why a website is slow</title>
+<meta name="description" content="WhySlow is a Chrome extension that measures a page, shows why it feels slow, and writes an AI ready report.">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="top">
+  <a class="name" href="./">WhySlow</a>
+  <nav aria-label="Main"><a href="privacy/">Privacy policy</a></nav>
+</header>
+<main id="main">
+<section class="hero">
+  <h1>Find out why a website is slow.</h1>
+  <p class="lede">WhySlow measures a page, shows you the headline numbers, and writes a report you can paste into an AI assistant to work out the cause.</p>
+  <div class="actions">
+    <span class="soon">Coming soon to the Chrome Web Store</span>
+    <a class="ds-btn ds-btn--text" href="privacy/"><span>Read the privacy policy</span><svg width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true"><path d="M2 8H16M10 2L16 8L10 14" stroke="currentColor" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+  <div class="terminal" role="img" aria-label="Example result: server response 1950 milliseconds, poor; connection 640 milliseconds; load 5200 milliseconds, poor">
+    <div class="cmd">$ whyslow example.com</div>
+    <dl><dt>TTFB</dt><dd>1950 ms</dd><dd class="s">✗ Poor</dd><dt>Connection</dt><dd>640 ms</dd><dd class="s"></dd><dt>Load</dt><dd>5200 ms</dd><dd class="s">✗ Poor</dd></dl>
+    <span class="cursor" aria-hidden="true"></span>
+  </div>
+  <p class="muted note">Example figures, not a real site.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <ol class="plain">
+    <li>Open the page you want to check and click the WhySlow icon.</li>
+    <li>Choose "Reload &amp; analyze" for a realistic first visit, or "Analyze tab" for what is already loaded. You can also type any address under "Test URL".</li>
+    <li>Read the snapshot, then copy the report and paste it into Claude, ChatGPT, Gemini or any other assistant. The report already contains instructions, so there is nothing to write.</li>
+  </ol>
+  <figure class="shot">
+    <img src="assets/img/whyslow-snapshot.png" width="1280" height="800" alt="The WhySlow popup showing a terminal panel with server response, DNS, connection and load times, a snapshot of findings, and cards rated Good.">
+    <figcaption>The popup shows the headline numbers before you open the report.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="list">
+    <li><strong>A quick snapshot.</strong> Server response, first paint, main content, layout shift, requests, total size, third party share, render blocking files, script blocking time, domains and page size, each rated good, needs improvement or poor.</li>
+    <li><strong>Likely causes, ranked.</strong> Each one comes with evidence and file names.</li>
+    <li><strong>An AI ready report.</strong> It holds a built in prompt, test context, ranked findings, where time and bytes go, the slowest and largest files, and a plain "limits of this data" section so the AI does not guess.</li>
+    <li><strong>Fix and retest.</strong> Every run is saved on your device. After you change something, I show what improved, what got worse and which files appeared or disappeared. Add a note such as "enabled page cache" and it goes into the report.</li>
+    <li><strong>Exports.</strong> A Markdown report, copy to clipboard, and a CSV of every request.</li>
+    <li><strong>Light and dark.</strong> It follows your system, or you can switch in the popup.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Private by design</h2>
+  <p>WhySlow has no servers, no account, no analytics and no ads. All measuring and all saved history stay in your browser. The only things that leave are the reports you choose to copy or save.</p>
+  <p><a class="ds-btn ds-btn--text" href="privacy/"><span>Read the privacy policy</span><svg width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true"><path d="M2 8H16M10 2L16 8L10 14" stroke="currentColor" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/></svg></a></p>
+</section>
+
+<section>
+  <h2>Good to know</h2>
+  <ul class="plain">
+    <li>Timings come from your own browser and connection. Repeat the test and compare rather than treating one run as exact.</li>
+    <li>Causes on the server, such as the database, CMS or PHP, can only be inferred from the server response time. The report says so.</li>
+    <li>Chrome blocks extensions on chrome:// pages and the Chrome Web Store.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Say hello</h2>
+  <p>Questions or problems? Email me at <a href="mailto:whyslow@averyskylark.com">whyslow@averyskylark.com</a>.</p>
+</section>
+</main>
+<footer>
+  <div class="row">
+    <span>WhySlow by Avery Skylark</span>
+    <span><a href="mailto:whyslow@averyskylark.com">whyslow@averyskylark.com</a> · <a href="privacy/">Privacy policy</a></span>
+  </div>
+</footer>
+</div>
+</body>
+</html>

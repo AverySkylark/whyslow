@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhySlow privacy policy</title>
+<meta name="description" content="What data the WhySlow Chrome extension handles. Everything stays in your browser.">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="top">
+  <a class="name" href="../">WhySlow</a>
+  <nav aria-label="Main"><a href="../privacy/">Privacy policy</a></nav>
+</header>
+<main id="main">
+<div class="doc">
+<h1>WhySlow privacy policy</h1>
+<p class="meta">Effective 17 October 2026</p>
+<p class="first">WhySlow is a Chrome extension that helps you find out why a website feels slow. This policy explains what data it handles. The short version: everything stays in your browser, and nothing is sent to the developer or anyone else.</p>
+
+<h2>What WhySlow does and does not do</h2>
+<ul class="plain">
+<li>It has no server, no account, no analytics, no advertising and no tracking.</li>
+<li>It does not send any data over the network. It makes no requests of its own.</li>
+<li>It does not sell or share data, and does not load or run code, fonts or other files from the internet.</li>
+</ul>
+
+<h2>Data WhySlow handles, and where it lives</h2>
+<p>All of this stays on your device.</p>
+<ol class="plain">
+<li><strong>Page measurements.</strong> When you run a test, WhySlow reads performance data from the page you chose: its address and title, load timings, the list of files it loaded (addresses, sizes, timings, types) and basic page metrics. This is shown in the popup.</li>
+<li><strong>Response header details.</strong> While the extension is installed, it reads these response headers for web requests: status, content-encoding, cache-control, content-length and server. It uses them for compression and caching checks. They are kept per tab in temporary browser session storage and removed when the tab closes or the browser session ends. They are not written to disk as history.</li>
+<li><strong>Run history.</strong> Each test you run is saved in the extension's local storage so it can show what changed since your last run. A saved run holds the page address and title, the measurements, a list of findings, third-party domain names, up to 150 file addresses with timings and sizes, and any note you type. It keeps up to 15 runs for each of 30 pages and discards the oldest.</li>
+<li><strong>Settings.</strong> Whether run saving is on or off, and your light, dark or automatic theme choice.</li>
+</ol>
+
+<h2>Your control</h2>
+<ul class="plain">
+<li>Turn saving off, delete single runs, clear one page's history or clear all history under "Run history" in the popup.</li>
+<li>Uninstalling the extension deletes all of its stored data.</li>
+</ul>
+
+<h2>What leaves your device</h2>
+<p>Only what you choose to export. "Copy report", "Export report" and "Export CSV" put your test results on your clipboard or in a file you save. The report includes the tested page's address and the addresses of the files it loaded.</p>
+<p>If you paste a report into an AI assistant or share it, that service's own privacy policy applies. Avoid sharing reports from private, logged-in or internal pages, since addresses can reveal sensitive paths or names.</p>
+
+<h2>Permissions</h2>
+<p>WhySlow asks for scripting, tabs, webRequest, storage, clipboardWrite and access to all sites. These are used only for the features described above: measuring a page you choose, reading response headers, saving your history locally and copying your report. They are not used to collect or transmit browsing data.</p>
+
+<h2>Children</h2>
+<p>WhySlow is a developer tool and is not directed at children.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the new version will be published at the same address with a new effective date.</p>
+
+<h2>Contact</h2>
+<p>Avery Skylark · <a href="mailto:whyslow@averyskylark.com">whyslow@averyskylark.com</a></p>
+</div>
+</main>
+<footer>
+  <div class="row">
+    <span>WhySlow by Avery Skylark</span>
+    <span><a href="mailto:whyslow@averyskylark.com">whyslow@averyskylark.com</a> · <a href="../privacy/">Privacy policy</a></span>
+  </div>
+</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Release packages
+*.zip
+
+# General Sans font files: the ITF Free Font License does not allow redistributing
+# them through public servers. Download them yourself (see fonts/README.md).
+# Remove these two lines only if this repository is private.
+**/fonts/*.woff2
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
+
+# Claude Code local settings
+.claude/

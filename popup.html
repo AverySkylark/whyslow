@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WhySlow</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="popup.css">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>WhySlow <span class="ver" id="ver"></span> <button id="btnTheme" type="button" class="ds-btn ds-btn--text themebtn"></button></h1>
+      <div class="tag">I work out why a page feels slow. Then you hand my report to an AI.</div>
+    </div>
+    <div class="actions">
+      <button id="btnTab" class="ds-btn" title="Analyze what this tab has already loaded">Analyze tab</button>
+      <button id="btnReload" class="ds-btn ds-btn--outline" title="Reload this tab bypassing the cache, then analyze it">Reload &amp; analyze</button>
+    </div>
+  </header>
+
+  <div class="urlrow">
+    <input id="urlInput" type="text" aria-label="Domain or URL to test" placeholder="Enter a domain or URL, like example.com" spellcheck="false">
+    <button id="btnUrl" class="ds-btn ds-btn--outline">Test URL</button>
+  </div>
+
+  <div id="status" class="status" role="status" hidden></div>
+  <div id="results" hidden></div>
+
+  <section id="aiHelp" class="aihelp" hidden></section>
+
+  <footer id="footer" hidden>
+    <button id="btnMd" class="ds-btn ds-btn--lg">Export report</button>
+    <button id="btnCopy" class="ds-btn ds-btn--outline">Copy report</button>
+    <button id="btnCsv" class="ds-btn ds-btn--outline">Export CSV</button>
+  </footer>
+  <div id="exportNote" class="exportnote" role="status" aria-live="polite"></div>
+  <div class="endspacer"></div>
+
+  <script src="history.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
