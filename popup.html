@@ -27,15 +27,20 @@
   <div id="status" class="status" role="status" hidden></div>
   <div id="results" hidden></div>
 
-  <section id="aiHelp" class="aihelp" hidden></section>
-
   <footer id="footer" hidden>
     <button id="btnMd" class="ds-btn ds-btn--lg">Export report</button>
-    <button id="btnCopy" class="ds-btn ds-btn--outline">Copy report</button>
     <button id="btnCsv" class="ds-btn ds-btn--outline">Export CSV</button>
   </footer>
   <div id="exportNote" class="exportnote" role="status" aria-live="polite"></div>
   <div class="endspacer"></div>
+
+  <section id="aiHelp" class="aihelp" aria-label="Give the report to an AI" hidden>
+    <div class="aitop">
+      <div class="aistatus" id="aiStatus" role="status" aria-live="polite"></div>
+      <button id="btnCopy" class="ds-btn">Copy report</button>
+    </div>
+    <div class="aichips" id="aiChips"></div>
+  </section>
 
   <script src="history.js"></script>
   <script src="popup.js"></script>

@@ -232,20 +232,27 @@ td.note { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 .histctl { display: flex; align-items: center; gap: var(--space-22); margin-top: var(--space-12); flex-wrap: wrap; }
 .histctl label { font-size: var(--button-size); }
 
-/* Next: give the report to an AI */
-.aihelp { background: var(--surface); border: 1px solid var(--border); padding: var(--space-12) var(--space-22); margin-top: var(--space-22); }
-.aihelp strong { font-weight: 500; }
-.aihelp ol { margin: var(--space-8) 0; padding-left: var(--space-22); color: var(--ink-muted); }
-.aihelp li { margin: 0; }
-.aichips { display: flex; gap: var(--space-8); flex-wrap: wrap; }
+/* Collapsed detail block (findings through all files) */
+details.more { margin-top: var(--space-22); border-top: 1px solid var(--border); padding-top: var(--space-12); }
+details.more summary { cursor: pointer; font-weight: 500; margin-bottom: var(--space-8); }
 
-.aipick { border-top: 1px solid var(--border); padding-top: var(--space-12); }
-.aipick-title { font-size: var(--button-size); line-height: var(--button-line); margin-bottom: var(--space-8); }
-.aistatus { margin-top: var(--space-12); font-size: var(--button-size); line-height: var(--button-line); color: var(--ink); }
-.aistatus:empty { display: none; }
+/* Give the report to an AI: pinned to the bottom of the popup while results scroll */
+.aihelp {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 calc(-1 * var(--space-22));
+  padding: var(--space-8) var(--space-22) var(--space-12);
+  background: var(--bg);
+  border-top: 1px solid var(--ink);
+}
+.aitop { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); margin-bottom: var(--space-8); }
+.aistatus { font-size: var(--button-size); line-height: var(--button-line); color: var(--ink-muted); min-width: 0; }
+.aistatus.done, .aistatus.fail { color: var(--ink); }
 .aistatus.done::before { content: "\2713\00a0"; }
 .aistatus.fail { font-weight: 500; }
 .aistatus.fail::before { content: "Problem: "; }
+.aichips { display: flex; gap: var(--space-8); flex-wrap: wrap; max-height: 5.5rem; overflow: hidden; }
 
 /* Keep the history table inside the popup width */
 details.hist td, details.hist th { white-space: normal; }

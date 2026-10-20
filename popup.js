@@ -276,6 +276,8 @@ function build(data) {
 
 const SEV_WORD = { high: 'High', med: 'Medium', low: 'Low', info: 'Note' };
 
+let detailsOpen = false; // the collapsed detail block keeps its state across re-renders
+
 function render() {
   const c = current;
   const v = c.vitals;
@@ -355,6 +357,7 @@ function render() {
     <div class="cards">${cards}</div>
     <div class="hint">"–" means the browser hid the value (cross-origin files without a Timing-Allow-Origin header). ${c.totals.cached ? c.totals.cached + ' file(s) came from cache, so their timings are not network times.' : ''}</div>
     ${changesHtml()}
+    <details class="more"${detailsOpen ? ' open' : ''}><summary>Details: findings, domains, file types and all files</summary>
     <h2>Findings, most serious first</h2>${findingsHtml}
     <h2>Domain connection times</h2>
     <div class="scroll"><table><thead><tr><th>Domain</th><th>Protocol</th><th class="num">DNS</th><th class="num">TCP</th><th class="num">TLS</th><th class="num">Files</th><th class="num">Time</th><th class="num">Size</th></tr></thead><tbody>${domainRows}</tbody></table></div>
@@ -364,8 +367,11 @@ function render() {
     <h2>All files</h2>
     <div class="chips">${chips}</div>
     <div class="scroll"><table id="resTable"></table></div>
+    </details>
     ${historyHtml()}`;
 
+  const more = document.querySelector('details.more');
+  if (more) more.addEventListener('toggle', () => { detailsOpen = more.open; });
   renderResources();
   wireHistory();
   document.querySelectorAll('.chip').forEach((el) => {
@@ -647,10 +653,10 @@ $('#btnCopy').onclick = async () => {
   try {
     await navigator.clipboard.writeText(report());
     b.textContent = 'Copied';
-    exportNote('✓ Report copied. Paste it into your AI chat.');
+    aiSay('done', 'Copied the full report. Paste it into your AI chat.');
   } catch (e) {
     b.textContent = 'Copy failed';
-    exportNote('Problem: I could not copy the report. Use Export report instead.');
+    aiSay('fail', 'I could not copy the report. Use Export report instead.');
   }
   setTimeout(() => (b.textContent = 'Copy report'), 1800);
 };
@@ -665,32 +671,31 @@ const AI_PROMPTS = [
   { label: 'Did my change help?', text: 'Compare this run with the earlier run. Did my change help? Which differences are real and which are normal run-to-run noise, and what should I try next?', needsCmp: true }
 ];
 
+const AI_HINT = 'Copy the full report, or pick a question. Each button copies the full report plus that question.';
+let aiTimer;
+function aiSay(cls, text) {
+  const st = $('#aiStatus');
+  st.className = 'aistatus ' + cls;
+  st.textContent = text;
+  clearTimeout(aiTimer);
+  aiTimer = setTimeout(() => { st.className = 'aistatus'; st.textContent = AI_HINT; }, 8000);
+}
+
 function renderAiHelp() {
   const list = AI_PROMPTS.filter((p) => !p.needsCmp || current.cmp);
-  $('#aiHelp').innerHTML = `
-    <strong>Next, give the report to an AI</strong>
-    <ol>
-      <li>Click <strong>Copy report</strong> below, or export the .md file and attach it to the chat.</li>
-      <li>Open an AI chat such as Claude, ChatGPT or Gemini, paste, and send. The report already contains instructions, so you don't need to type anything.</li>
-      <li>Want a different angle? Use a button below instead of step 1.</li>
-    </ol>
-    <div class="aipick">
-      <div class="aipick-title">Each button copies the <u>full report plus one question</u>:</div>
-      <div class="aichips">${list.map((p) => `<button class="aichip ds-btn ds-btn--outline ds-btn--sm" data-i="${AI_PROMPTS.indexOf(p)}" title="Copies the full report with this question on top: ${esc(p.text)}">${esc(p.label)}</button>`).join('')}</div>
-      <div class="aistatus" id="aiStatus" aria-live="polite"></div>
-    </div>`;
+  const st = $('#aiStatus');
+  st.className = 'aistatus';
+  st.textContent = AI_HINT;
+  $('#aiChips').innerHTML = list.map((p) => `<button class="aichip ds-btn ds-btn--outline ds-btn--sm" data-i="${AI_PROMPTS.indexOf(p)}" title="Copies the full report with this question on top: ${esc(p.text)}">${esc(p.label)}</button>`).join('');
   document.querySelectorAll('.aichip').forEach((b) => {
     b.onclick = async () => {
       const p = AI_PROMPTS[Number(b.dataset.i)];
       const text = `${p.text}\n\nThe measurements are below.\n\n${report()}`;
-      const st = $('#aiStatus');
       try {
         await navigator.clipboard.writeText(text);
-        st.className = 'aistatus done';
-        st.innerHTML = `Copied the question “${esc(p.text)}” <strong>plus the full report</strong>, about ${Math.round(text.length / 1000)}k characters. Now paste it into your AI chat.`;
+        aiSay('done', `Copied “${p.label}” plus the full report (about ${Math.round(text.length / 1000)}k characters). Paste it into your AI chat.`);
       } catch (e) {
-        st.className = 'aistatus fail';
-        st.textContent = 'I could not copy. Use the Export report button instead.';
+        aiSay('fail', 'I could not copy. Use the Export report button instead.');
       }
     };
   });
