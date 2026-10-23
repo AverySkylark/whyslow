@@ -1,6 +1,6 @@
 // WhySlow - popup UI, analysis and AI diagnosis report
 const $ = (s) => document.querySelector(s);
-try { $('#ver').textContent = 'v' + chrome.runtime.getManifest().version; } catch (e) { /* version label is optional */ }
+try { $('#ver').textContent = 'WhySlow v' + chrome.runtime.getManifest().version; } catch (e) { /* version label is optional */ }
 // The design system's one icon: a right arrow after the label of minor actions
 const ARROW = '<svg width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true"><path d="M2 8H16M10 2L16 8L10 14" stroke="currentColor" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 // Light/dark switch. mode.js applies a saved choice before first paint; with none, the system decides.
