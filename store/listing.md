@@ -49,7 +49,7 @@ WhySlow diagnoses why a web page loads slowly. It measures a page's load perform
 - `scripting`: Injects a read-only measurement function into the page the user chooses to analyze, to read the browser's own Performance API data (timings, file sizes, paint and layout-shift metrics). It does not change the page.
 - `tabs`: Finds the active tab's address, reloads it with the cache bypassed for a cold-load test, and opens and closes a background tab for the "Test URL" feature.
 - `webRequest`: Read-only. Reads response headers (status, content-encoding, cache-control, content-length, server) so the report can say whether files were compressed and cacheable. These cannot be read from the Performance API. It never blocks, modifies or redirects any request.
-- `storage`: Saves the user's run history and the on/off setting for saving locally (`chrome.storage.local`), and holds captured response-header data temporarily for each tab (`chrome.storage.session`, removed when the tab closes).
+- `storage`: Saves the user's run history and the on/off setting for saving locally (`chrome.storage.local`), and holds captured response-header data and the last test result temporarily for each tab (`chrome.storage.session`, removed when the tab closes or the browser session ends) so the popup can show results again after it closes.
 - `clipboardWrite`: Lets the "Copy report" button put the Markdown report on the clipboard so the user can paste it into an AI assistant.
 - Host permission `<all_urls>`: The user can analyze any website, so measuring and header capture must work on any http(s) page. WhySlow only reads performance data for the page being analyzed and sends nothing anywhere.
 

@@ -59,7 +59,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   headerStore.delete(tabId);
-  chrome.storage.session.remove('h' + tabId).catch(() => {});
+  chrome.storage.session.remove(['h' + tabId, 'r' + tabId]).catch(() => {}); // headers, and the popup's last result
 });
 
 // Runs inside the page. Must be fully self-contained.

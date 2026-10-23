@@ -16,8 +16,9 @@ All of this stays on your device.
 
 1. **Page measurements.** When you run a test, WhySlow reads performance data from the page you chose: its address and title, load timings, the list of files it loaded (addresses, sizes, timings, types) and basic page metrics. This is shown in the popup.
 2. **Response header details.** While the extension is installed, it reads these response headers for web requests: status, content-encoding, cache-control, content-length and server. It uses them for compression and caching checks. They are kept per tab in temporary browser session storage and removed when the tab closes or the browser session ends. They are not written to disk as history.
-3. **Run history.** Each test you run is saved in the extension's local storage so it can show what changed since your last run. A saved run holds the page address and title, the measurements, a list of findings, third-party domain names, up to 150 file addresses with timings and sizes, and any note you type. It keeps up to 15 runs for each of 30 pages and discards the oldest.
-4. **Settings.** Whether run saving is on or off, and your light, dark or automatic theme choice.
+3. **Last result per tab.** So the popup can show your results again after it closes, the last test's measurements for a tab are kept in temporary browser session storage. They are removed when that tab closes or the browser session ends, and only the last 8 tabs are kept.
+4. **Run history.** Each test you run is saved in the extension's local storage so it can show what changed since your last run. A saved run holds the page address and title, the measurements, a list of findings, third-party domain names, up to 150 file addresses with timings and sizes, and any note you type. It keeps up to 15 runs for each of 30 pages and discards the oldest.
+5. **Settings.** Whether run saving is on or off, and your light, dark or automatic theme choice.
 
 ## Your control
 

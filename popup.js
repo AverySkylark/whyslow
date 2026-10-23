@@ -485,7 +485,7 @@ function render() {
 
   $('#results').innerHTML = view === 'causes' ? causesHtml(c)
     : view === 'blocking' ? blockingHtml(c)
-    : view === 'history' ? `<div class="pad">${changesHtml()}${historyHtml()}</div>`
+    : view === 'history' ? histPanelHtml()
     : view === 'details' ? detailsHtml(c)
     : overviewHtml(c);
   $('#results').hidden = false;
@@ -581,7 +581,9 @@ async function run(msg, label) {
     if (!data) throw new Error('No response from the extension background worker.');
     if (data.error) throw new Error(data.error);
     current = build(data);
+    histSel = null;
     await attachHistory(current);
+    saveLast(msg.tabId || await activeTabId(), data, current.snap.id);
     setStatus('');
     view = lastView = 'overview';
     render();
@@ -590,6 +592,42 @@ async function run(msg, label) {
   } finally {
     setBusy(false);
   }
+}
+
+// ---------- Keep the last result per tab ----------
+// Chrome destroys the popup whenever it loses focus. The raw result of the last run in each tab is kept in
+// chrome.storage.session (memory only, cleared when the browser closes or the tab closes) and re-rendered
+// when the popup opens again on the same page.
+const LAST = (tabId) => 'r' + tabId;
+const LAST_KEEP = 8; // tabs whose last result is kept
+const fmtClock = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+async function saveLast(tabId, data, snapId) {
+  if (tabId == null) return;
+  try {
+    await chrome.storage.session.set({ [LAST(tabId)]: { t: Date.now(), snapId, data } });
+    const all = await chrome.storage.session.get(null);
+    const old = Object.keys(all).filter((k) => /^r\d+$/.test(k) && k !== LAST(tabId))
+      .sort((a, b) => (all[b].t || 0) - (all[a].t || 0)).slice(LAST_KEEP - 1);
+    if (old.length) await chrome.storage.session.remove(old);
+  } catch (e) { /* too large or unavailable: restoring is a convenience */ }
+}
+
+async function restoreLast() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+    const saved = (await chrome.storage.session.get(LAST(tab.id)))[LAST(tab.id)];
+    if (!saved || !saved.data || current) return;
+    // The tab has moved to another page: start fresh rather than show the old page's results
+    if (saved.data.mode !== 'url' && tab.url && pageKey(tab.url) !== pageKey(saved.data.url)) return;
+    current = build(saved.data);
+    current.when = new Date(saved.t);
+    await attachHistory(current, { record: false, id: saved.snapId });
+    view = lastView = 'overview';
+    render();
+    toast('', `Showing your results from ${fmtClock(saved.t)}. Use ↻ to run it again.`);
+  } catch (e) { /* nothing to restore */ }
 }
 
 async function activeTabId() {
@@ -610,6 +648,7 @@ $('#urlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#b
 // ---------- Popup chrome: tabs, ⋯ menu, question menu, Details ----------
 
 $('#btnAgain').onclick = () => $('#btnReload').click();
+restoreLast();
 
 $('#tabs').onkeydown = (e) => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;

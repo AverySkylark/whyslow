@@ -1,6 +1,8 @@
 // Preview only: fakes the chrome.* APIs and feeds sample results to the real popup. Not part of the extension.
 (function () {
-  const mem = {};
+  // chrome.storage.local stand-in, kept in sessionStorage so saved runs survive a reload (like reopening the popup)
+  const mem = (() => { try { return JSON.parse(sessionStorage.getItem('stubLocal') || '{}'); } catch (e) { return {}; } })();
+  const keepMem = () => { try { sessionStorage.setItem('stubLocal', JSON.stringify(mem)); } catch (e) { /* ignore */ } };
   const ver = (() => { try { const x = new XMLHttpRequest(); x.open('GET', '/manifest.json', false); x.send(); return JSON.parse(x.responseText).version; } catch (e) { return '?'; } })();
   const H = 'https://example-shop.com.au';
   const r = (name, init, start, dur, size, extra = {}) => Object.assign({
@@ -26,11 +28,21 @@
   };
   window.chrome = {
     runtime: { getManifest: () => ({ version: ver }), sendMessage: async () => { await new Promise((ok) => setTimeout(ok, 400)); return JSON.parse(JSON.stringify(SAMPLE)); } },
-    tabs: { query: async () => [{ id: 1 }] },
-    storage: { local: {
+    tabs: { query: async () => [{ id: 1, url: SAMPLE.url }] },
+    storage: { session: (() => {
+      const ss = {};
+      try { Object.assign(ss, JSON.parse(sessionStorage.getItem('stubSession') || '{}')); } catch (e) { /* ignore */ }
+      const keep = () => { try { sessionStorage.setItem('stubSession', JSON.stringify(ss)); } catch (e) { /* ignore */ } };
+      return {
+        get: async (k) => (k == null ? { ...ss } : { [k]: ss[k] }),
+        set: async (o) => { Object.assign(ss, o); keep(); },
+        remove: async (k) => { [].concat(k).forEach((x) => delete ss[x]); keep(); }
+      };
+    })(),
+    local: {
       get: async (k) => ({ [k]: mem[k] }),
-      set: async (o) => { Object.assign(mem, o); },
-      remove: async (k) => { delete mem[k]; }
+      set: async (o) => { Object.assign(mem, o); keepMem(); },
+      remove: async (k) => { delete mem[k]; keepMem(); }
     } }
   };
   // Auto-run once so the results are on screen straight away (add ?manual to the URL to skip)

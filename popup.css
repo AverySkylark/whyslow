@@ -166,6 +166,7 @@ body.has-results .launch .tag { display: none; }
 
 .toast { position: absolute; left: var(--space-8); right: var(--space-8); bottom: 44px; z-index: 7; padding: 6px 10px; background: var(--st-surface-overlay, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--st-shadow-overlay); font-size: 12px; }
 .toast:empty { display: none; }
+.toast { color: var(--ink); }
 .toast.done { color: var(--good); }
 .toast.done::before { content: "\2713\00a0"; }
 .toast.fail { color: var(--bad); font-weight: 500; }
@@ -294,6 +295,13 @@ details.hist summary { cursor: pointer; font-weight: 600; margin-bottom: var(--s
 details.hist td, details.hist th { white-space: normal; }
 details.hist td.num { white-space: nowrap; }
 tr.thisrun td { background: var(--surface); }
+.runopen { padding: 0; border: 0; background: none; font: inherit; color: var(--link); text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.runback::before { content: "\2190\00a0"; }
+.runhead { display: flex; flex-direction: column; margin-top: var(--space-8); }
+.runhead strong { font-size: 15px; font-weight: 600; }
+ul.runfind { margin: 0; padding: 0; list-style: none; font-size: 12px; word-break: break-all; }
+ul.runfind li { padding: 3px 0; }
+.runact { margin-top: var(--space-12); }
 td.del { width: 36px; padding: 0 4px; text-align: right; }
 .delRun:hover:not(:disabled) { background: var(--st-danger-bg); color: var(--bad); }
 /* Saved-run settings: labelled rows, a switch, red Clear buttons with a two-click confirm */

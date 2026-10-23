@@ -259,8 +259,11 @@ async function histClear(key) {
 }
 
 // Called after build(): saves the run (if enabled) and works out the comparison.
-async function attachHistory(c) {
+// opts.record = false and opts.id: re-showing an earlier result (popup reopened), so don't save it again
+// and keep its original id so it is not compared with itself.
+async function attachHistory(c, opts = {}) {
   c.snap = snapshot(c);
+  if (opts.id) c.snap.id = opts.id;
   c.key = pageKey(c.url);
   c.settings = { save: false };
   c.stored = [];
@@ -273,7 +276,7 @@ async function attachHistory(c) {
     const all = await histLoadAll();
     const prior = (all[c.key] && all[c.key].runs) || [];
     c.baseId = (defaultBaseline(prior, c.snap.mode) || {}).id || null;
-    if (c.settings.save) c.saveFailed = !(await histRecord(c.key, c.snap));
+    if (c.settings.save && opts.record !== false) c.saveFailed = !(await histRecord(c.key, c.snap));
     await histRefresh(c);
   } catch (e) { /* history is optional; the rest of the report still works */ }
 }
@@ -391,7 +394,7 @@ const BIN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke=
 function histRowsHtml() {
   const c = current;
   return c.stored.map((r) => `<tr${r.id === c.snap.id ? ' class="thisrun"' : ''}>
-    <td>${esc(fmtWhen(r.t))}${r.id === c.snap.id ? ' <span class="hint">(this run)</span>' : ''}<div class="hint tight" title="${esc(r.note)}">${esc(MODE_SHORT[r.mode] || r.mode)}${r.note ? ' · ' + esc(clip(r.note, 60)) : ''}</div></td>
+    <td>${r.id === c.snap.id ? `${esc(fmtWhen(r.t))} <span class="hint">(this run)</span>` : `<button type="button" class="runopen" data-id="${esc(r.id)}" title="Open this run">${esc(fmtWhen(r.t))}</button>`}<div class="hint tight" title="${esc(r.note)}">${esc(MODE_SHORT[r.mode] || r.mode)}${r.note ? ' · ' + esc(clip(r.note, 60)) : ''}</div></td>
     <td class="num">${esc(histVal('ms', r.m.ttfb))}</td>
     <td class="num">${esc(histVal('ms', r.m.lcp))}</td>
     <td class="del"><button type="button" class="ib delRun" data-id="${esc(r.id)}" title="Delete this saved run" aria-label="Delete the run from ${esc(fmtWhen(r.t))}">${BIN}</button></td></tr>`).join('');
@@ -419,6 +422,44 @@ function historyHtml() {
   <div class="hint">Pages are matched by host and path; query strings are ignored.</div>`;
 }
 
+// ---------- Popup: one earlier run (summary from the saved snapshot) ----------
+
+let histSel = null; // id of the saved run being viewed in the History tab
+
+function runHtml() {
+  const c = current;
+  const r = c.stored.find((x) => x.id === histSel);
+  if (!r) return '';
+  const cmp = compare(r, c.snap);
+  const sevTag = (sev) => `<span class="pill ${sev}">${SEV_WORD[sev]}</span>`;
+  const rows = cmp.metrics.map((m) => `<tr class="${m.verdict}">
+      <td>${esc(m.label)}</td>
+      <td class="num">${esc(histVal(m.unit, m.before))}</td>
+      <td class="num">${esc(histVal(m.unit, m.after))}</td>
+      <td class="num chg ${m.verdict}">${esc(histDelta(m))}${m.verdict === 'better' ? ' ✓' : m.verdict === 'worse' ? ' ✗' : ''}</td></tr>`).join('');
+  const slow = (r.files || []).slice().sort((a, b) => (b.ms || 0) - (a.ms || 0)).slice(0, 5);
+  const s = cmp.summary;
+  return `<div class="pad">
+    <button type="button" class="ds-btn ds-btn--text runback" id="runBack"><span class="lbl">All runs</span></button>
+    <div class="runhead"><strong>${esc(fmtWhen(r.t))}</strong><span class="hint tight">${esc(MODE_SHORT[r.mode] || r.mode)}${r.note ? ' · ' + esc(r.note) : ''}</span></div>
+    <h2>Findings then</h2>
+    ${r.findings.length ? `<ul class="runfind">${r.findings.map((f) => `<li>${sevTag(f.sev)} ${esc(f.title)}</li>`).join('')}</ul>` : '<div class="ok">Nothing serious flagged.</div>'}
+    <h2>Then vs this run</h2>
+    <div class="cmpsum"><span class="better">${s.better} better</span> · <span class="worse">${s.worse} worse</span> · <span class="same">${s.same} unchanged</span></div>
+    ${cmp.warnings.filter((w) => !/File-level detail/.test(w)).map((w) => `<div class="warnbox">${esc(w)}</div>`).join('')}
+    <div class="scroll tall"><table class="cmp"><thead><tr><th>Measure</th><th class="num">Then</th><th class="num">Now</th><th class="num">Change</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${slow.length ? `<h2>Slowest files then</h2><ul class="runfind">${slow.map((f) => `<li>${esc(histFileLine(f))}</li>`).join('')}</ul>` : '<div class="hint">File details are only kept for the 3 newest runs of each page.</div>'}
+    <div class="runact"><button type="button" class="ds-btn ds-btn--outline ds-btn--sm" id="runBase">Use as comparison baseline</button></div>
+    <div class="hint">Saved runs keep a summary, not the full result, so the Overview bar and Blocking list are only available for the current run.</div>
+  </div>`;
+}
+
+// What the History tab shows: one earlier run, or the comparison plus the run list
+function histPanelHtml() {
+  if (histSel && !current.stored.some((r) => r.id === histSel)) histSel = null;
+  return histSel ? runHtml() : `<div class="pad">${changesHtml()}${historyHtml()}</div>`;
+}
+
 // Two-click confirmation without a dialog.
 function armed(btn, label, action) {
   btn.onclick = () => {
@@ -442,6 +483,19 @@ function wireDeletes() {
 
 function wireHistory() {
   const c = current;
+  document.querySelectorAll('.runopen').forEach((b) => { b.onclick = () => { histSel = b.dataset.id; $('#main').scrollTop = 0; render(); }; });
+  const back = $('#runBack');
+  if (back) back.onclick = () => { histSel = null; render(); };
+  const useBase = $('#runBase');
+  if (useBase) {
+    useBase.onclick = () => {
+      c.baseId = histSel;
+      c.cmp = compare(c.history.find((r) => r.id === c.baseId), c.snap);
+      histSel = null;
+      render();
+      toast('done', 'Now comparing this run with the one you picked.');
+    };
+  }
   const sel = $('#baseSel');
   if (sel) {
     sel.onchange = () => {
