@@ -3,22 +3,29 @@ const $ = (s) => document.querySelector(s);
 try { $('#ver').textContent = 'v' + chrome.runtime.getManifest().version; } catch (e) { /* version label is optional */ }
 // The design system's one icon: a right arrow after the label of minor actions
 const ARROW = '<svg width="18" height="16" viewBox="0 0 18 16" fill="none" aria-hidden="true"><path d="M2 8H16M10 2L16 8L10 14" stroke="currentColor" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-// Theme switch: auto, light, dark (applied early by theme.js)
-const THEMES = ['auto', 'light', 'dark'];
-function themeNow() { const t = document.documentElement.dataset.theme; return THEMES.includes(t) ? t : 'auto'; }
-function showTheme() {
-  const t = themeNow();
-  const b = $('#btnTheme');
-  b.innerHTML = `<span class="lbl">Theme: ${t}</span>`;
-  b.title = 'Switch between automatic, light and dark';
-}
-$('#btnTheme').onclick = () => {
-  const next = THEMES[(THEMES.indexOf(themeNow()) + 1) % THEMES.length];
-  if (next === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = next;
-  try { next === 'auto' ? localStorage.removeItem('wsTheme') : localStorage.setItem('wsTheme', next); } catch (e) { /* storage is optional */ }
-  showTheme();
+// Light/dark switch. mode.js applies a saved choice before first paint; with none, the system decides.
+const SYS_DARK = matchMedia('(prefers-color-scheme: dark)');
+const MODE_ICON = {
+  sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>'
 };
-showTheme();
+const modeNow = () => document.documentElement.dataset.mode || (SYS_DARK.matches ? 'dark' : 'light');
+function paintModeBtn() {
+  const dark = modeNow() === 'dark';
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  const b = $('#btnMode');
+  b.innerHTML = dark ? MODE_ICON.sun : MODE_ICON.moon;
+  b.setAttribute('aria-label', label);
+  b.title = label;
+}
+$('#btnMode').onclick = () => {
+  const next = modeNow() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.mode = next;
+  try { localStorage.setItem('wsMode', next); } catch (e) { /* storage is optional */ }
+  paintModeBtn();
+};
+SYS_DARK.addEventListener('change', paintModeBtn);
+paintModeBtn();
 // Chrome focuses the first control when a popup opens and draws a focus ring on it; drop that so only real keyboard use shows one
 setTimeout(() => { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); }, 30);
 let current = null;
@@ -275,20 +282,133 @@ function build(data) {
 // ---------- Rendering ----------
 
 const SEV_WORD = { high: 'High', med: 'Medium', low: 'Low', info: 'Note' };
+const SEV_SHORT = { high: 'High', med: 'Med', low: 'Low', info: 'Note' };
 
-let detailsOpen = false; // the collapsed detail block keeps its state across re-renders
+// Which part of the Overview load bar a finding belongs to: server (up to the first byte),
+// blocking (first byte to first paint) or render (first paint to main content). 'oth' = neither.
+function segOf(f) {
+  const t = f.title;
+  if (f.sev === 'info' || /Cache-Control/.test(t)) return 'oth';
+  if (/TTFB|Redirect|connection setup/i.test(t)) return 'srv';
+  if (/Render-blocking|FCP/.test(t)) return 'blk';
+  return 'rnd';
+}
+const SEG_WORD = { srv: 'Server', blk: 'Blocking', rnd: 'Render', oth: '' };
 
-function render() {
-  const c = current;
+// Plain-English headline for the top finding on Overview (falls back to the finding title)
+const HEADLINE = {
+  'Slow server response (TTFB)': 'Server is the bottleneck',
+  'Redirects before the page loads': 'Redirects delay the page',
+  'Render-blocking CSS/JS': 'Render-blocking files hold up the page',
+  'Main thread blocked by long JavaScript tasks': 'JavaScript is hogging the main thread',
+  'Heavy third-party load': 'Third-party files are weighing it down',
+  'Slow largest contentful paint (LCP)': 'The main content arrives late',
+  'Slow first contentful paint (FCP)': 'The first paint arrives late',
+  'Heavy page weight': 'The page is too heavy',
+  'Text files sent without compression': 'Text files are not compressed',
+  'Layout shifting while loading (CLS)': 'The layout jumps while loading'
+};
+const firstSentence = (s) => { const m = String(s).match(/^.*?\.(\s|$)/); return m ? m[0].trim() : String(s); };
+const fmtS = (n) => (n / 1000).toFixed(2);
+const hostOf = (u) => { try { return new URL(u).host; } catch (e) { return ''; } };
+
+let view = 'overview'; // overview | causes | blocking | history | details
+let lastView = 'overview';
+let menuOpen = false;
+let aiOpen = false;
+
+const SVG = (body) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICON = {
+  server: SVG('<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>'),
+  warn: SVG('<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/>'),
+  ok: SVG('<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>')
+};
+
+function overviewHtml(c) {
+  const v = c.vitals;
+  const ttfb = c.docRow && c.docRow.ttfb;
+
+  // 1. Verdict: the most serious cause in plain words. Slow LCP/FCP are symptoms, so a real cause wins over them;
+  //    the box keeps the colour of the worst finding.
+  const SYMPTOM = /\((LCP|FCP)\)$/;
+  const serious = c.findings.filter((f) => f.sev === 'high' || f.sev === 'med');
+  const top = serious.find((f) => f.sev === 'high' && !SYMPTOM.test(f.title)) || serious.find((f) => !SYMPTOM.test(f.title)) || serious[0];
+  const verdict = top
+    ? `<section class="verdict ${serious[0].sev}">${segOf(top) === 'srv' ? ICON.server : ICON.warn}<div><strong>${esc(HEADLINE[top.title] || top.title)}</strong><span class="why">${esc(firstSentence(top.detail))}</span></div></section>`
+    : `<section class="verdict none">${ICON.ok}<div><strong>No major bottleneck</strong><span class="why">Nothing was rated high or medium. Causes lists any minor items.</span></div></section>`;
+
+  // 2. Headline time and where it went
+  const endKey = ok(v.lcp) ? 'lcp' : ok(v.fcp) ? 'fcp' : null;
+  const end = endKey ? v[endKey] : (ok(v.load) ? v.load : null);
+  const endLabel = endKey === 'lcp' ? 'until main content showed' : endKey === 'fcp' ? 'until first paint' : 'until the load event';
+  const r = endKey ? rate(end, endKey) : '';
+  const BADGE = { good: 'Fast', warn: 'Needs work', bad: 'Slow' };
+  let hero = '';
+  if (ok(end)) {
+    hero = `<div class="hero-top"><span class="big" data-rate="${r}">${fmtS(end)} s</span><span class="lbl">${endLabel}</span>${r ? `<span class="badge" data-rate="${r}">${BADGE[r]}</span>` : ''}</div>`;
+    if (ok(ttfb) && end > 0) {
+      const srv = Math.min(ttfb, end);
+      const fcp = ok(v.fcp) ? Math.min(Math.max(v.fcp, srv), end) : srv;
+      const P = (x) => Math.max(0, Math.min(100, (x / end) * 100));
+      const pS = P(srv), pB = P(fcp - srv), pR = Math.max(0, 100 - pS - pB), fcpP = P(fcp);
+      const seg = (cls, p, name, ms) => (p > 0 ? `<div class="seg c-${cls}" style="width:${p.toFixed(1)}%" title="${name}: ${Math.round(ms)} ms">${p >= 14 ? name : ''}</div>` : '');
+      const labels = ['<span style="left:0">0</span>'];
+      if (pS > 10 && pS < 85 && Math.abs(pS - fcpP) > 18) labels.push(`<span style="left:${pS.toFixed(1)}%;transform:translateX(-50%)">${fmtS(srv)}</span>`);
+      if (ok(v.fcp) && fcpP > 12 && fcpP < 78) labels.push(`<span class="mk" style="left:${fcpP.toFixed(1)}%;transform:translateX(-50%)">FCP ${fmtS(fcp)}</span>`);
+      labels.push(`<span style="right:0">${fmtS(end)} s</span>`);
+      hero += `<div class="tl">
+        <div class="tl-bar" role="img" aria-label="Server ${Math.round(srv)} ms, render-blocking ${Math.round(fcp - srv)} ms, rendering ${Math.round(end - fcp)} ms">${seg('srv', pS, 'Server', srv)}${seg('blk', pB, 'Block', fcp - srv)}${seg('rnd', pR, 'Render', end - fcp)}</div>
+        ${ok(v.fcp) && fcpP > 0 && fcpP < 100 ? `<div class="tl-mark" style="left:${fcpP.toFixed(1)}%"></div>` : ''}
+        <div class="tl-axis">${labels.join('')}</div></div>`;
+    }
+  }
+
+  // 3. The next findings, one line each (open the Causes tab)
+  const rest = c.findings.filter((f) => f !== top && f.sev !== 'info').slice(0, 4);
+  const also = rest.length
+    ? `<section class="top" aria-label="Also found"><div class="top-h">Also found</div>${rest.map((f) => `<button type="button" class="topc" data-go="causes"><span class="sw c-${segOf(f)}"></span><span class="t">${esc(f.title)}</span><span class="sev" data-sev="${f.sev}">${SEV_SHORT[f.sev]}</span></button>`).join('')}</section>`
+    : '';
+
+  // 4. One line of totals, then the comparison if there is one
+  const stats = [`${c.totals.requests} req`, fmtKb(c.totals.kb), `3P ${pct(c.origin.thirdFiles, c.totals.requests)}%`, `TBT ${fmtMs(c.env.blockingMs)}`, `CLS ${ok(v.cls) ? v.cls.toFixed(2) : '–'}`];
+  let since = '';
+  if (c.cmp) {
+    const s = c.cmp.summary;
+    since = `<button type="button" class="since" data-go="history"><span>Since the last run: ${s.better} better · ${s.worse} worse · ${s.same} unchanged</span>${ARROW}</button>`;
+  }
+  return `<div class="ov">${verdict}${hero ? `<section class="hero" aria-label="Load time">${hero}</section>` : ''}<div class="stats" aria-label="Totals">${stats.map((s) => `<span>${esc(s)}</span>`).join('')}</div>${also}${since}</div>`;
+}
+
+function causesHtml(c) {
+  if (!c.findings.length) return '<div class="pad"><div class="ok">Nothing obvious flagged.</div></div>';
+  const rows = c.findings.map((f) => {
+    const s = segOf(f);
+    return `<details class="cause"><summary><span class="sw c-${s}"${SEG_WORD[s] ? ` title="${SEG_WORD[s]} part of the load"` : ''}></span><span class="t">${esc(f.title)}</span><span class="sev" data-sev="${f.sev}">${SEV_SHORT[f.sev]}</span></summary>
+      <div class="body">${esc(f.detail)}${f.items.length ? `<ul>${f.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}</div></details>`;
+  }).join('');
+  return `<div class="list">${rows}</div><div class="pad hint">Most serious first. Each colour square matches a part of the Overview bar: Server, Block or Render. Grey ones are notes.</div>`;
+}
+
+function blockingHtml(c) {
+  if (!c.blockers.length) return '<div class="pad"><div class="ok">No render-blocking CSS or JS was reported.</div><div class="hint">Chrome flags these per file; very old Chrome versions do not report it.</div></div>';
+  const list = c.blockers.slice().sort((a, b) => (b.total || 0) - (a.total || 0));
+  const kb = list.reduce((s, r) => s + (r.kb || 0), 0);
+  const own = hostOf(c.url);
+  // File name only (plus host when it is another site); the full URL is in the tooltip
+  const path = (u) => { try { const x = new URL(u); const f = x.pathname.split('/').filter(Boolean).pop() || x.pathname; return (x.host !== own ? x.host + ' · ' : '') + f; } catch (e) { return u; } };
+  return `<div class="pad hint">${list.length} file(s), ${fmtKb(kb)}. The browser has to fetch these before it can paint anything. Slowest first.</div>
+    <div class="files"><div class="file head"><span class="ty">Type</span><span class="u">File</span><span class="n">Size</span><span class="n">Time</span></div>
+    ${list.map((r) => `<div class="file"><span class="ty">${esc(r.type)}</span><span class="u" title="${esc(r.url)}">${esc(path(r.url))}</span><span class="n">${fmtKb(r.kb)}</span><span class="n">${fmtMs(r.total)}</span></div>`).join('')}</div>`;
+}
+
+function detailsHtml(c) {
   const v = c.vitals;
   const ttfb = c.docRow && c.docRow.ttfb;
   const thirdPct = pct(c.origin.thirdFiles, c.totals.requests);
   const CARD_WORD = { good: 'Good', warn: 'Needs a look', bad: 'Poor' };
   const card = (label, value, cls = '', sub = '') => `<div class="card"><div class="label">${esc(label)}</div><div class="value ${cls}">${esc(value)}</div>${cls ? `<div class="rating ${cls}">${cls === 'good' ? '✓' : cls === 'bad' ? '✗' : '!'} ${CARD_WORD[cls]}</div>` : ''}${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>`;
 
-  // Terminal panel: the key timings for the page's own host
-  let host = '';
-  try { host = new URL(c.url).host; } catch (e) { /* ignore */ }
+  const host = hostOf(c.url);
   const hd = c.domains.find((d) => d.host === host);
   const conn = hd && hd.measured ? hd.tcp + hd.tls : null;
   const term = (name, value, cls, note) => `<dt>${esc(name)}</dt><dd class="${cls || ''}">${esc(value)}</dd><dd class="state">${cls ? esc(RATE_WORD[cls]) : esc(note || '')}</dd>`;
@@ -299,9 +419,7 @@ function render() {
       ${term('DNS', hd && hd.measured ? fmtMs(hd.dns) : '–', '', hd && hd.measured ? '' : 'Reused or cached')}
       ${term('Connection', fmtMs(conn), '', hd && hd.measured ? '' : 'Reused or cached')}
       ${term('Load', fmtMs(v.load))}
-    </dl>
-    <span class="cursor" aria-hidden="true"></span>
-  </div>`;
+    </dl></div>`;
 
   const cards = [
     card('Server response (TTFB)', fmtMs(ttfb), rate(ttfb, 'ttfb'), 'good ≤ 800 ms'),
@@ -318,25 +436,6 @@ function render() {
     card('DOM elements', ok(c.env.domNodes) ? String(c.env.domNodes) : '–', c.env.domNodes > 3000 ? 'bad' : c.env.domNodes > 1500 ? 'warn' : '')
   ].join('');
 
-  const count = (s) => c.findings.filter((f) => f.sev === s).length;
-  const top = c.findings.filter((f) => f.sev === 'high' || f.sev === 'med').slice(0, 3);
-  const verdict = `<div class="verdict">
-    <div class="counts">Snapshot
-      <span class="pill high">${count('high')} high</span>
-      <span class="pill med">${count('med')} medium</span>
-      <span class="pill low">${count('low')} low</span>
-    </div>
-    ${top.length
-      ? `<div class="hint tight">Most likely causes of slowness:</div><ol>${top.map((f) => `<li><strong>${esc(f.title)}</strong></li>`).join('')}</ol>`
-      : '<div class="ok">Nothing serious flagged.</div>'}
-  </div>`;
-
-  const findingsHtml = c.findings.length
-    ? `<ul class="findings">${c.findings.map((f) => `<li><span class="pill ${f.sev}">${SEV_WORD[f.sev]}</span> <strong>${esc(f.title)}</strong>
-        <div class="detail">${esc(f.detail)}</div>
-        ${f.items.length ? `<ul>${f.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul>`
-    : '<div class="ok">Nothing obvious flagged.</div>';
-
   const domainRows = c.domains.map((d) => `<tr>
     <td>${esc(d.host)}${d.third ? ' <span class="hint">(3rd party)</span>' : ''}</td>
     <td>${esc(d.proto || '–')}</td>
@@ -346,19 +445,15 @@ function render() {
     <td class="num">${d.files}</td>
     <td class="num">${fmtMs(d.ms)}</td>
     <td class="num">${fmtKb(d.kb)}</td></tr>`).join('');
-
   const typeRows = c.types.map((t) => `<tr><td>${esc(t.type)}</td><td class="num">${t.files}</td><td class="num">${fmtMs(t.ms)}</td><td class="num">${fmtKb(t.kb)}</td></tr>`).join('');
   const chips = c.types.map((t) => `<button type="button" class="chip ${typeFilter.has(t.type) ? 'on' : ''}" aria-pressed="${typeFilter.has(t.type)}" data-type="${esc(t.type)}">${esc(t.type)} (${t.files})</button>`).join('');
 
-  $('#results').innerHTML = `
-    <div class="pageinfo"><strong>${esc(c.title || c.url)}</strong><br>${esc(c.url)}<br><span class="mode">${esc(MODE_WORD[c.mode])}</span></div>
+  return `<div class="pad">
+    <div class="dhead"><div class="pageinfo"><strong>${esc(c.title || c.url)}</strong><br>${esc(c.url)}<br><span class="mode">${esc(MODE_WORD[c.mode])}</span></div>
+      <button id="btnCsv" class="ds-btn ds-btn--outline ds-btn--sm" type="button">Export CSV</button></div>
     ${terminal}
-    ${verdict}
     <div class="cards">${cards}</div>
     <div class="hint">"–" means the browser hid the value (cross-origin files without a Timing-Allow-Origin header). ${c.totals.cached ? c.totals.cached + ' file(s) came from cache, so their timings are not network times.' : ''}</div>
-    ${changesHtml()}
-    <details class="more"${detailsOpen ? ' open' : ''}><summary>Details: findings, domains, file types and all files</summary>
-    <h2>Findings, most serious first</h2>${findingsHtml}
     <h2>Domain connection times</h2>
     <div class="scroll"><table><thead><tr><th>Domain</th><th>Protocol</th><th class="num">DNS</th><th class="num">TCP</th><th class="num">TLS</th><th class="num">Files</th><th class="num">Time</th><th class="num">Size</th></tr></thead><tbody>${domainRows}</tbody></table></div>
     <div class="hint">Connection times show only for the first request to each domain; reused connections report zero and show "–".</div>
@@ -367,26 +462,61 @@ function render() {
     <h2>All files</h2>
     <div class="chips">${chips}</div>
     <div class="scroll"><table id="resTable"></table></div>
-    </details>
-    ${historyHtml()}`;
+  </div>`;
+}
 
-  const more = document.querySelector('details.more');
-  if (more) more.addEventListener('toggle', () => { detailsOpen = more.open; });
-  renderResources();
-  wireHistory();
-  document.querySelectorAll('.chip').forEach((el) => {
-    el.onclick = () => {
-      const t = el.dataset.type;
-      typeFilter.has(t) ? typeFilter.delete(t) : typeFilter.add(t);
-      render();
-    };
-  });
-
-  $('#results').hidden = false;
+function render() {
+  const c = current;
   document.body.classList.add('has-results');
+  document.body.classList.toggle('wide', view === 'details');
+  $('#host').textContent = hostOf(c.url) || c.url;
+  $('#host').title = c.url;
+  $('#btnAgain').hidden = false;
+  $('#btnMenu').hidden = false;
+
+  const tabs = [
+    ['overview', 'Overview', null],
+    ['causes', 'Causes', c.findings.filter((f) => f.sev !== 'info').length],
+    ['blocking', 'Blocking', c.blockers.length],
+    ['history', 'History', c.stored.length]
+  ];
+  $('#tabs').innerHTML = tabs.map(([k, label, n]) => `<button type="button" role="tab" class="tab" data-view="${k}" aria-selected="${view === k}" tabindex="${view === k || (view === 'details' && k === lastView) ? 0 : -1}">${label}${n != null ? `<span class="n">${n}</span>` : ''}</button>`).join('');
+  $('#tabs').hidden = false;
+
+  $('#results').innerHTML = view === 'causes' ? causesHtml(c)
+    : view === 'blocking' ? blockingHtml(c)
+    : view === 'history' ? `<div class="pad">${changesHtml()}${historyHtml()}</div>`
+    : view === 'details' ? detailsHtml(c)
+    : overviewHtml(c);
+  $('#results').hidden = false;
+
+  $('#btnDetails').setAttribute('aria-pressed', String(view === 'details'));
+  $('#btnDetails').textContent = view === 'details' ? 'Close' : 'Details';
+  document.querySelectorAll('#tabs .tab').forEach((t) => { t.onclick = () => go(t.dataset.view); });
+  document.querySelectorAll('#results [data-go]').forEach((b) => { b.onclick = () => go(b.dataset.go); });
+
+  if (view === 'history') wireHistory();
+  if (view === 'details') {
+    renderResources();
+    document.querySelectorAll('.chip').forEach((el) => {
+      el.onclick = () => {
+        const t = el.dataset.type;
+        typeFilter.has(t) ? typeFilter.delete(t) : typeFilter.add(t);
+        render();
+      };
+    });
+    $('#btnCsv').onclick = exportCsv;
+  }
+
   renderAiHelp();
-  $('#aiHelp').hidden = false;
   $('#footer').hidden = false;
+}
+
+function go(v) {
+  if (v !== 'details') lastView = v;
+  view = v;
+  $('#main').scrollTop = 0;
+  render();
 }
 
 function renderResources() {
@@ -438,10 +568,12 @@ function setStatus(text, isError = false) {
 }
 
 function setBusy(busy) {
-  ['#btnTab', '#btnReload', '#btnUrl'].forEach((s) => ($(s).disabled = busy));
+  ['#btnTab', '#btnReload', '#btnUrl', '#btnAgain'].forEach((s) => ($(s).disabled = busy));
 }
 
 async function run(msg, label) {
+  setMenu(false);
+  setAi(false);
   setBusy(true);
   setStatus(label);
   try {
@@ -451,6 +583,7 @@ async function run(msg, label) {
     current = build(data);
     await attachHistory(current);
     setStatus('');
+    view = lastView = 'overview';
     render();
   } catch (e) {
     setStatus(e.message || String(e), true);
@@ -473,6 +606,48 @@ $('#btnUrl').onclick = () => {
   run({ type: 'testUrl', url }, 'I\'m loading ' + url + ' in a background tab.');
 };
 $('#urlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnUrl').click(); });
+
+// ---------- Popup chrome: tabs, ⋯ menu, question menu, Details ----------
+
+$('#btnAgain').onclick = () => $('#btnReload').click();
+
+$('#tabs').onkeydown = (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const list = [...document.querySelectorAll('#tabs .tab')];
+  const i = list.indexOf(document.activeElement);
+  if (i < 0) return;
+  e.preventDefault();
+  const next = list[(i + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length].dataset.view;
+  go(next);
+  const again = document.querySelector(`#tabs .tab[data-view="${next}"]`);
+  if (again) again.focus();
+};
+
+function setMenu(open) {
+  menuOpen = open;
+  document.body.classList.toggle('menu-open', open);
+  $('#btnMenu').setAttribute('aria-expanded', String(open));
+  if (open) { setAi(false); $('#btnReload').focus(); }
+}
+function setAi(open) {
+  aiOpen = open;
+  $('#aiMenu').hidden = !open;
+  $('#btnAsk').setAttribute('aria-expanded', String(open));
+  if (open) { setMenu(false); const f = document.querySelector('.aiq'); if (f) f.focus(); }
+}
+$('#btnMenu').onclick = (e) => { e.stopPropagation(); setMenu(!menuOpen); };
+$('#btnAsk').onclick = (e) => { e.stopPropagation(); setAi(!aiOpen); };
+document.addEventListener('click', (e) => {
+  if (menuOpen && !e.target.closest('#launch, #btnMenu')) setMenu(false);
+  if (aiOpen && !e.target.closest('#aiMenu, #btnAsk')) setAi(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || (!menuOpen && !aiOpen)) return;
+  e.preventDefault();
+  if (menuOpen) { setMenu(false); $('#btnMenu').focus(); }
+  if (aiOpen) { setAi(false); $('#btnAsk').focus(); }
+});
+$('#btnDetails').onclick = () => { if (current) go(view === 'details' ? lastView : 'details'); };
 
 // ---------- Export: AI diagnosis report ----------
 
@@ -629,23 +804,26 @@ function csv() {
   return lines.join('\r\n');
 }
 
-let noteTimer;
-function exportNote(text) {
-  const n = $('#exportNote');
-  n.textContent = text;
-  clearTimeout(noteTimer);
-  noteTimer = setTimeout(() => (n.textContent = ''), 4000);
+let toastTimer;
+function toast(cls, text) {
+  const t = $('#toast');
+  t.className = 'toast ' + cls;
+  t.textContent = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = 'toast'; t.textContent = ''; }, cls === 'fail' ? 8000 : 4500);
+}
+const exportNote = (text) => toast('done', text);
+
+function exportCsv() {
+  if (!current) return;
+  download(`whyslow_${safeHost()}_${stamp()}.csv`, csv(), 'text/csv');
+  exportNote('CSV saved to your Downloads folder.');
 }
 
 $('#btnMd').onclick = () => {
   if (!current) return;
   download(`whyslow_${safeHost()}_${stamp()}.md`, report(), 'text/markdown');
-  exportNote('✓ Report saved to your Downloads folder.');
-};
-$('#btnCsv').onclick = () => {
-  if (!current) return;
-  download(`whyslow_${safeHost()}_${stamp()}.csv`, csv(), 'text/csv');
-  exportNote('✓ CSV saved to your Downloads folder.');
+  exportNote('Report saved to your Downloads folder.');
 };
 $('#btnCopy').onclick = async () => {
   if (!current) return;
@@ -656,9 +834,9 @@ $('#btnCopy').onclick = async () => {
     aiSay('done', 'Copied the full report. Paste it into your AI chat.');
   } catch (e) {
     b.textContent = 'Copy failed';
-    aiSay('fail', 'I could not copy the report. Use Export report instead.');
+    aiSay('fail', 'I could not copy the report. Use Save .md instead.');
   }
-  setTimeout(() => (b.textContent = 'Copy report'), 1800);
+  setTimeout(() => (b.textContent = 'Copy AI brief'), 1800);
 };
 
 // ---------- Next step: give the report to an AI ----------
@@ -671,31 +849,22 @@ const AI_PROMPTS = [
   { label: 'Did my change help?', text: 'Compare this run with the earlier run. Did my change help? Which differences are real and which are normal run-to-run noise, and what should I try next?', needsCmp: true }
 ];
 
-const AI_HINT = 'Copy the full report, or pick a question. Each button copies the full report plus that question.';
-let aiTimer;
-function aiSay(cls, text) {
-  const st = $('#aiStatus');
-  st.className = 'aistatus ' + cls;
-  st.textContent = text;
-  clearTimeout(aiTimer);
-  aiTimer = setTimeout(() => { st.className = 'aistatus'; st.textContent = AI_HINT; }, 8000);
-}
+function aiSay(cls, text) { toast(cls, text); }
 
+// The ▴ next to Copy AI brief: each question copies itself plus the full report
 function renderAiHelp() {
   const list = AI_PROMPTS.filter((p) => !p.needsCmp || current.cmp);
-  const st = $('#aiStatus');
-  st.className = 'aistatus';
-  st.textContent = AI_HINT;
-  $('#aiChips').innerHTML = list.map((p) => `<button class="aichip ds-btn ds-btn--outline ds-btn--sm" data-i="${AI_PROMPTS.indexOf(p)}" title="Copies the full report with this question on top: ${esc(p.text)}">${esc(p.label)}</button>`).join('');
-  document.querySelectorAll('.aichip').forEach((b) => {
+  $('#aiChips').innerHTML = list.map((p) => `<button type="button" class="aiq" data-i="${AI_PROMPTS.indexOf(p)}" title="Copies the full report with this question on top: ${esc(p.text)}">${esc(p.label)}</button>`).join('');
+  document.querySelectorAll('.aiq').forEach((b) => {
     b.onclick = async () => {
       const p = AI_PROMPTS[Number(b.dataset.i)];
       const text = `${p.text}\n\nThe measurements are below.\n\n${report()}`;
+      setAi(false);
       try {
         await navigator.clipboard.writeText(text);
         aiSay('done', `Copied “${p.label}” plus the full report (about ${Math.round(text.length / 1000)}k characters). Paste it into your AI chat.`);
       } catch (e) {
-        aiSay('fail', 'I could not copy. Use the Export report button instead.');
+        aiSay('fail', 'I could not copy. Use Save .md instead.');
       }
     };
   });

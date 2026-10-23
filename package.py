@@ -6,7 +6,7 @@ import json, os, sys, zipfile
 root = os.path.dirname(os.path.abspath(__file__))
 os.chdir(root)
 version = json.load(open("manifest.json", encoding="utf-8"))["version"]
-files = ["manifest.json", "background.js", "popup.html", "popup.css", "popup.js", "history.js", "theme.js", "tokens.css"]
+files = ["manifest.json", "background.js", "popup.html", "popup.css", "popup.js", "history.js", "mode.js", "tokens.css", "strata.css"]
 dirs = ["icons", "fonts"]
 fonts = ["fonts/GeneralSans-Regular.woff2", "fonts/GeneralSans-Medium.woff2"]
 

@@ -35,7 +35,7 @@ const METRICS = [
 const VERDICT_WORD = { better: 'Better', worse: 'Worse', same: 'No meaningful change', na: 'n/a' };
 const fmtWhen = (t) => new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
-let histOpen = false;
+let histOpen = true; // open by default now that history has its own tab
 
 // ---------- Keys ----------
 
@@ -280,6 +280,9 @@ async function attachHistory(c) {
 
 async function histRefresh(c) {
   const all = await histLoadAll();
+  const pages = Object.values(all).filter((p) => p && Array.isArray(p.runs) && p.runs.length);
+  c.totalPages = pages.length;
+  c.totalRuns = pages.reduce((s, p) => s + p.runs.length, 0);
   c.stored = (all[c.key] && all[c.key].runs) || [];
   c.history = c.stored.filter((r) => r.id !== c.snap.id);
   if (!c.history.some((r) => r.id === c.baseId)) c.baseId = (defaultBaseline(c.history, c.snap.mode) || {}).id || null;
@@ -383,34 +386,37 @@ function changesHtml() {
 
 // ---------- Popup: run history list ----------
 
+const BIN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>';
+
 function histRowsHtml() {
   const c = current;
   return c.stored.map((r) => `<tr${r.id === c.snap.id ? ' class="thisrun"' : ''}>
-    <td>${esc(fmtWhen(r.t))}${r.id === c.snap.id ? ' <span class="hint">(this run)</span>' : ''}</td>
-    <td>${esc(MODE_SHORT[r.mode] || r.mode)}</td>
+    <td>${esc(fmtWhen(r.t))}${r.id === c.snap.id ? ' <span class="hint">(this run)</span>' : ''}<div class="hint tight" title="${esc(r.note)}">${esc(MODE_SHORT[r.mode] || r.mode)}${r.note ? ' · ' + esc(clip(r.note, 60)) : ''}</div></td>
     <td class="num">${esc(histVal('ms', r.m.ttfb))}</td>
-    <td class="num">${esc(histVal('ms', r.m.fcp))}</td>
     <td class="num">${esc(histVal('ms', r.m.lcp))}</td>
-    <td class="num">${esc(histVal('n', r.m.requests))}</td>
-    <td class="num">${esc(histVal('kb', r.m.kb))}</td>
-    <td class="note" title="${esc(r.note)}">${esc(r.note)}</td>
-    <td><button class="ds-btn ds-btn--text delRun" data-id="${esc(r.id)}" title="Delete this saved run" aria-label="Delete this saved run"><span class="lbl">Delete</span></button></td></tr>`).join('');
+    <td class="del"><button type="button" class="ib delRun" data-id="${esc(r.id)}" title="Delete this saved run" aria-label="Delete the run from ${esc(fmtWhen(r.t))}">${BIN}</button></td></tr>`).join('');
 }
 
 function historyHtml() {
   const c = current;
+  const n = c.stored.length;
+  const runs = (k) => `${k} saved run${k === 1 ? '' : 's'}`;
+  const row = (label, sub, control) => `<div class="hrow"><div class="htxt">${label}<span class="hsub">${sub}</span></div>${control}</div>`;
   return `<details class="hist"${histOpen ? ' open' : ''}>
-    <summary>Run history for this page (${c.stored.length} saved)</summary>
-    ${c.stored.length
-      ? `<div class="scroll"><table><thead><tr><th>When</th><th>Load type</th><th class="num">TTFB</th><th class="num">FCP</th><th class="num">LCP</th><th class="num">Requests</th><th class="num">Size</th><th>Note</th><th></th></tr></thead><tbody id="histBody">${histRowsHtml()}</tbody></table></div>`
+    <summary>Run history for this page (${n} saved)</summary>
+    ${n
+      ? `<div class="scroll"><table><thead><tr><th>When</th><th class="num">TTFB</th><th class="num">LCP</th><th></th></tr></thead><tbody id="histBody">${histRowsHtml()}</tbody></table></div>`
       : '<div class="hint">No saved runs for this page yet.</div>'}
-    <div class="histctl">
-      <label><input type="checkbox" id="saveToggle"${c.settings.save ? ' checked' : ''}> Save runs on this device</label>
-      <button class="ds-btn ds-btn--text" id="clearPage"><span class="lbl">Clear this page</span>${ARROW}</button>
-      <button class="ds-btn ds-btn--text" id="clearAll"><span class="lbl">Clear all pages</span>${ARROW}</button>
-    </div>
-    <div class="hint">Stored locally in this browser only. Keeps up to ${HIST.MAX_RUNS} runs for each of ${HIST.MAX_PAGES} pages. Pages are matched by host and path; query strings are ignored.</div>
-  </details>`;
+  </details>
+  <div class="hset" role="group" aria-label="Saved runs">
+    ${row('<label class="hlbl" for="saveToggle">Save runs on this device</label>', `This browser only. ${HIST.MAX_RUNS} runs × ${HIST.MAX_PAGES} pages.`,
+      `<input type="checkbox" role="switch" class="switch" id="saveToggle"${c.settings.save ? ' checked' : ''}>`)}
+    ${row('<span class="hlbl">This page</span>', esc(runs(n)),
+      `<button type="button" class="dbtn" id="clearPage" aria-label="Clear saved runs for this page"${n ? '' : ' disabled'}><span class="lbl">Clear</span></button>`)}
+    ${row('<span class="hlbl">All pages</span>', esc(`${runs(c.totalRuns || 0)} across ${c.totalPages || 0} page${c.totalPages === 1 ? '' : 's'}`),
+      `<button type="button" class="dbtn" id="clearAll" aria-label="Clear saved runs for all pages"${c.totalRuns ? '' : ' disabled'}><span class="lbl">Clear all</span></button>`)}
+  </div>
+  <div class="hint">Pages are matched by host and path; query strings are ignored.</div>`;
 }
 
 // Two-click confirmation without a dialog.
@@ -418,8 +424,9 @@ function armed(btn, label, action) {
   btn.onclick = () => {
     if (btn.dataset.armed) { action(); return; }
     btn.dataset.armed = '1';
-    btn.querySelector('.lbl').textContent = 'Click again to confirm';
-    setTimeout(() => { delete btn.dataset.armed; btn.querySelector('.lbl').textContent = label; }, 3000);
+    btn.classList.add('armed');
+    btn.querySelector('.lbl').textContent = 'Confirm clear';
+    setTimeout(() => { delete btn.dataset.armed; btn.classList.remove('armed'); btn.querySelector('.lbl').textContent = label; }, 3000);
   };
 }
 
@@ -461,9 +468,9 @@ function wireHistory() {
   const tog = $('#saveToggle');
   if (tog) tog.onchange = async () => { c.settings = await histSetSettings({ save: tog.checked }); };
   const cp = $('#clearPage');
-  if (cp) armed(cp, 'Clear this page', async () => { await histClear(c.key); await histRefresh(c); render(); });
+  if (cp) armed(cp, 'Clear', async () => { await histClear(c.key); await histRefresh(c); render(); });
   const ca = $('#clearAll');
-  if (ca) armed(ca, 'Clear all pages', async () => { await histClear(null); await histRefresh(c); render(); });
+  if (ca) armed(ca, 'Clear all', async () => { await histClear(null); await histRefresh(c); render(); });
 }
 
 // ---------- Report (Markdown for the AI) ----------

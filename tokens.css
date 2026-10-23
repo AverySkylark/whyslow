@@ -1,88 +1,42 @@
-/* Design tokens: "Website v2" design system (project/tokens.json).
-   The only place colour values are written. Everything else uses these variables.
-   General Sans is bundled in fonts/ (ITF Free Font License, see fonts/FFL.txt). */
-
-@font-face {
-  font-family: "General Sans";
-  src: url("fonts/GeneralSans-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "General Sans";
-  src: url("fonts/GeneralSans-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
+/* Design tokens: Strata (strata.css) supplies the presets. This file maps WhySlow's variables onto
+   Strata's --st-* tokens, using the Keystone preset (data-preset on <html> in popup.html); light or dark follows the system.
+   The only place colour roles are chosen; no raw colour values here or in popup.css. */
 
 :root {
-  color-scheme: light dark;
+  --bg: var(--st-surface-raised); /* white-ish, not the preset's grey ground */
+  --surface: var(--st-accent-subtle);      /* tinted panels, no grey */
+  --border: var(--st-border);
+  --ink: var(--st-text);
+  --ink-muted: var(--st-text-subtle);
+  --ink-faint: var(--st-text-subtlest);
+  --action: var(--st-accent);
+  --on-action: var(--st-on-accent);
+  --action-hover: var(--st-accent-hover);
+  --tint: var(--st-accent-subtle);
+  --tint-hover: var(--st-neutral-fill-hover);
+  --link: var(--st-text-accent);
+  --focus: var(--st-focus-ring);
+  --good: var(--st-success-text);
+  --warn: var(--st-warning-text);
+  --bad: var(--st-danger-text);
 
-  /* Colour: light */
-  --bg: #ffffff;
-  --surface: #f7f7f7;
-  --border: #dddddd;
-  --ink: #121212;
-  --ink-muted: #5f5f5f;
-  --ink-faint: #aaaaaa; /* decorative only, never text */
-  --action: #121212;
-  --on-action: #f9f9f7;
-  --overlay: #00000026;
-  --scrim: #00000066;
+  --font-sans: var(--st-font-sans);
+  --body-size: var(--st-font-size-body);
+  --body-line: var(--st-line-height-body);
+  --button-size: var(--st-font-size-body);
+  --button-line: var(--st-line-height-body);
+  --button-weight: var(--st-font-weight-label);
+  --display-size: 28px;
+  --display-line: 32px;
+  --display-tracking: -0.5px;
 
-  /* Type */
-  --font-sans: "General Sans", Arial, sans-serif;
-  --body-size: 16px;
-  --body-line: 25.6px;
-  --button-size: 14px;
-  --button-line: 22.4px;
-  --button-weight: 500;
-  /* The brand display style (80px / 88px / -2.4px) scaled to 32px for the popup */
-  --display-size: 32px;
-  --display-line: 35.2px;
-  --display-tracking: -0.96px;
-
-  /* Spacing */
   --space-8: 8px;
   --space-12: 12px;
-  --space-22: 22px;
+  --space-22: 20px;
   --space-28: 28px;
 
-  /* Radius */
   --radius-none: 0;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-pill: 1000px;
+  --radius-sm: var(--st-radius-control);
+  --radius-md: var(--st-radius-card);
+  --radius-pill: var(--st-radius-pill);
 }
-
-/* Dark follows the system unless the user picked a theme (data-theme, set by theme.js) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121212;
-    --surface: #1a1a1a;
-    --border: #3a3a3a;
-    --ink: #f9f9f7;
-    --ink-muted: #a8a8a8;
-    --ink-faint: #6b6b6b;
-    --action: #f9f9f7;
-    --on-action: #121212;
-    --overlay: #ffffff26;
-    --scrim: #00000066;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #121212;
-  --surface: #1a1a1a;
-  --border: #3a3a3a;
-  --ink: #f9f9f7;
-  --ink-muted: #a8a8a8;
-  --ink-faint: #6b6b6b;
-  --action: #f9f9f7;
-  --on-action: #121212;
-  --overlay: #ffffff26;
-  --scrim: #00000066;
-}
-:root[data-theme="light"] { color-scheme: light; }

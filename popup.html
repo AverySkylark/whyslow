@@ -1,46 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-preset="keystone">
 <head>
   <meta charset="utf-8">
   <title>WhySlow</title>
+  <link rel="stylesheet" href="strata.css">
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="popup.css">
-  <script src="theme.js"></script>
+  <script src="mode.js"></script>
 </head>
 <body>
-  <header>
-    <div>
-      <h1>WhySlow <span class="ver" id="ver"></span> <button id="btnTheme" type="button" class="ds-btn ds-btn--text themebtn"></button></h1>
-      <div class="tag">I work out why a page feels slow. Then you hand my report to an AI.</div>
-    </div>
-    <div class="actions">
-      <button id="btnTab" class="ds-btn" title="Analyze what this tab has already loaded">Analyze tab</button>
-      <button id="btnReload" class="ds-btn ds-btn--outline" title="Reload this tab bypassing the cache, then analyze it">Reload &amp; analyze</button>
-    </div>
+  <header class="bar">
+    <svg class="logo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>
+    <h1 class="brand">WhySlow <span class="ver" id="ver"></span></h1>
+    <span class="host" id="host"></span>
+    <button id="btnMode" class="ib" type="button" aria-label="Switch to dark mode" title="Switch to dark mode"></button>
+    <button id="btnAgain" class="ib" type="button" aria-label="Run again: reload without the cache and measure" title="Run again (reload without the cache)" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></button>
+    <button id="btnMenu" class="ib" type="button" aria-label="Other tests" title="Other tests" aria-expanded="false" aria-controls="launch" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
   </header>
 
-  <div class="urlrow">
-    <input id="urlInput" type="text" aria-label="Domain or URL to test" placeholder="Enter a domain or URL, like example.com" spellcheck="false">
-    <button id="btnUrl" class="ds-btn ds-btn--outline">Test URL</button>
+  <nav id="tabs" class="tabs" role="tablist" aria-label="Views" hidden></nav>
+
+  <main id="main">
+    <section id="launch" class="launch" aria-label="Run a test">
+      <p class="tag">I work out why a page feels slow. Then you hand my report to an AI.</p>
+      <button id="btnReload" class="ds-btn" type="button" title="Reload this tab bypassing the cache, then analyze it">Reload &amp; analyze</button>
+      <button id="btnTab" class="ds-btn ds-btn--outline" type="button" title="Analyze what this tab has already loaded (cache may be warm)">Analyze as loaded</button>
+      <div class="urlrow">
+        <input id="urlInput" type="text" aria-label="Domain or URL to test" placeholder="Or test a URL, like example.com" spellcheck="false">
+        <button id="btnUrl" class="ds-btn ds-btn--outline" type="button">Test</button>
+      </div>
+    </section>
+    <div id="status" class="status" role="status" hidden></div>
+    <div id="results" hidden></div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="aiMenu" class="aimenu" hidden>
+    <div class="aimenu-h">Copy the full report with a question on top</div>
+    <div id="aiChips"></div>
   </div>
 
-  <div id="status" class="status" role="status" hidden></div>
-  <div id="results" hidden></div>
-
-  <footer id="footer" hidden>
-    <button id="btnMd" class="ds-btn ds-btn--lg">Export report</button>
-    <button id="btnCsv" class="ds-btn ds-btn--outline">Export CSV</button>
-  </footer>
-  <div id="exportNote" class="exportnote" role="status" aria-live="polite"></div>
-  <div class="endspacer"></div>
-
-  <section id="aiHelp" class="aihelp" aria-label="Give the report to an AI" hidden>
-    <div class="aitop">
-      <div class="aistatus" id="aiStatus" role="status" aria-live="polite"></div>
-      <button id="btnCopy" class="ds-btn">Copy report</button>
+  <footer id="footer" class="actbar" hidden>
+    <div class="copy">
+      <button id="btnCopy" type="button" title="Copy the full Markdown report to paste into an AI chat">Copy AI brief</button>
+      <button id="btnAsk" type="button" aria-label="Copy the report with a question" title="Copy with a question" aria-expanded="false" aria-controls="aiMenu"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
     </div>
-    <div class="aichips" id="aiChips"></div>
-  </section>
+    <button id="btnMd" class="act" type="button" title="Save the report as a Markdown file in Downloads">Save .md</button>
+    <button id="btnDetails" class="act" type="button" aria-pressed="false" title="All measures, domains and files">Details</button>
+  </footer>
 
   <script src="history.js"></script>
   <script src="popup.js"></script>

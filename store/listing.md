@@ -78,10 +78,11 @@ Certify all three statements: data is not sold to third parties; not used or tra
 
 ## Before you submit
 
-- Register as a Chrome Web Store developer (one-time registration fee, US$5 when last checked).
-- Make sure `fonts/GeneralSans-Regular.woff2` and `fonts/GeneralSans-Medium.woff2` are in the folder (they are not in the Git repository; see `fonts/README.md`), then build the package with `python package.py`. It writes `whyslow-<version>.zip` next to the project folder, with `manifest.json` at the zip root, and leaves out `store/`, `reference/`, `CLAUDE.md`, `README.md`, `.gitignore` and `package.py`. It stops if the fonts are missing.
-- Bump `version` in `manifest.json` for every upload; the store rejects a version it has already seen.
-- Upload the zip, then fill in the listing and privacy tabs from this file.
-- Expect a slower review: `<all_urls>` plus `webRequest` triggers extra scrutiny. The justifications above are written for that.
-- Set the support/homepage URL: https://averyskylark.com/whyslow/ (page source: `site/whyslow/index.html`).
-- Test the packaged zip once by unzipping it and loading it unpacked before uploading.
+1. Register as a Chrome Web Store developer with a Google account that has 2-step verification on. There is a one-time registration fee (US$5 when last checked; confirm the amount on the sign-up page). In the dashboard account settings, set and verify the contact email, and declare whether you are a trader.
+2. Make sure `fonts/GeneralSans-Regular.woff2` and `fonts/GeneralSans-Medium.woff2` are in the folder (they are not in the Git repository; see `fonts/README.md`), then build the package with `python package.py`. It writes `whyslow-<version>.zip` next to the project folder, with `manifest.json` at the zip root. It only includes the extension files, so `store/`, `site/`, `reference/`, `CLAUDE.md`, `README.md`, `.gitignore` and `package.py` are left out. It stops if the fonts are missing.
+3. Test the packaged zip: unzip it, load it unpacked, and run "Reload & analyze" and "Test URL" once.
+4. Upload the zip. For every later upload, raise `version` in `manifest.json`; an update must be higher than the version currently published.
+5. Fill in the listing and privacy tabs from this file.
+6. Add the images: `store/promo/` (promo tile, marquee) and `store/screenshots/`.
+7. Check that the privacy policy page and the homepage are live at the addresses above, then submit.
+8. Expect a slower review: `<all_urls>` plus `webRequest` triggers extra scrutiny. The justifications above are written for that.
