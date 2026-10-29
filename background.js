@@ -161,9 +161,10 @@ async function analyze(tabId) {
   return { ...injected.result, headers };
 }
 
-async function reloadAndAnalyze(tabId, settleMs) {
+// bypassCache true = cold load (first visit); false = warm load (repeat visit, browser cache used)
+async function reloadAndAnalyze(tabId, settleMs, bypassCache = true) {
   const done = waitComplete(tabId);
-  await chrome.tabs.reload(tabId, { bypassCache: true });
+  await chrome.tabs.reload(tabId, { bypassCache });
   await done;
   await sleep(settleMs);
   return analyze(tabId);
@@ -183,8 +184,8 @@ async function testUrl(url, settleMs) {
 async function handle(msg) {
   const settle = msg.settleMs ?? 1500;
   if (msg.type === 'analyzeTab') {
-    const r = msg.reload ? await reloadAndAnalyze(msg.tabId, settle) : await analyze(msg.tabId);
-    return { ...r, mode: msg.reload ? 'reload' : 'tab' };
+    const r = msg.reload ? await reloadAndAnalyze(msg.tabId, settle, !msg.warm) : await analyze(msg.tabId);
+    return { ...r, mode: msg.reload ? (msg.warm ? 'warm' : 'reload') : 'tab' };
   }
   if (msg.type === 'testUrl') return { ...(await testUrl(msg.url, settle)), mode: 'url' };
   throw new Error('Unknown request');

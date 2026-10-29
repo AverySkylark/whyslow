@@ -19,7 +19,7 @@ Is a website slow, and you don't know why? WhySlow measures the page, shows you 
 
 HOW IT WORKS
 1. Open the page you want to check and click the WhySlow icon.
-2. Click "Reload & analyze" for a realistic first-visit test, or "Analyze tab" for what is already loaded. You can also type any address under "Test URL".
+2. Click "Cold load" for a first-visit test or "Warm load" for a repeat visit (compare the two to check caching), or measure the page as it is. You can also type any address under "Test another page".
 3. Read the snapshot, then copy the AI report and paste it into Claude, ChatGPT, Gemini or any other assistant. The report already contains instructions, so there is nothing to write.
 
 WHAT YOU GET
@@ -47,7 +47,7 @@ WhySlow diagnoses why a web page loads slowly. It measures a page's load perform
 **Permission justifications**
 
 - `scripting`: Injects a read-only measurement function into the page the user chooses to analyze, to read the browser's own Performance API data (timings, file sizes, paint and layout-shift metrics). It does not change the page.
-- `tabs`: Finds the active tab's address, reloads it with the cache bypassed for a cold-load test, and opens and closes a background tab for the "Test URL" feature.
+- `tabs`: Finds the active tab's address, reloads it for the cold-load (cache bypassed) and warm-load (cache used) tests, and opens and closes a background tab for the "Test another page" feature.
 - `webRequest`: Read-only. Reads response headers (status, content-encoding, cache-control, content-length, server) so the report can say whether files were compressed and cacheable. These cannot be read from the Performance API. It never blocks, modifies or redirects any request.
 - `storage`: Saves the user's run history and the on/off setting for saving locally (`chrome.storage.local`), and holds captured response-header data and the last test result temporarily for each tab (`chrome.storage.session`, removed when the tab closes or the browser session ends) so the popup can show results again after it closes.
 - `clipboardWrite`: Lets the "Copy report" button put the Markdown report on the clipboard so the user can paste it into an AI assistant.
@@ -80,7 +80,7 @@ Certify all three statements: data is not sold to third parties; not used or tra
 
 1. Register as a Chrome Web Store developer with a Google account that has 2-step verification on. There is a one-time registration fee (US$5 when last checked; confirm the amount on the sign-up page). In the dashboard account settings, set and verify the contact email, and declare whether you are a trader.
 2. Make sure `fonts/GeneralSans-Regular.woff2` and `fonts/GeneralSans-Medium.woff2` are in the folder (they are not in the Git repository; see `fonts/README.md`), then build the package with `python package.py`. It writes `whyslow-<version>.zip` next to the project folder, with `manifest.json` at the zip root. It only includes the extension files, so `store/`, `site/`, `reference/`, `CLAUDE.md`, `README.md`, `.gitignore` and `package.py` are left out. It stops if the fonts are missing.
-3. Test the packaged zip: unzip it, load it unpacked, and run "Reload & analyze" and "Test URL" once.
+3. Test the packaged zip: unzip it, load it unpacked, and run "Cold load", "Warm load" and "Test another page" once.
 4. Upload the zip. For every later upload, raise `version` in `manifest.json`; an update must be higher than the version currently published.
 5. Fill in the listing and privacy tabs from this file.
 6. Add the images: `store/promo/` (promo tile, marquee) and `store/screenshots/`.

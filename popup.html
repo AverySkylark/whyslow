@@ -14,7 +14,7 @@
     <h1 class="brand">WhySlow</h1>
     <span class="host" id="host"></span>
     <button id="btnMode" class="ib" type="button" aria-label="Switch to dark mode" title="Switch to dark mode"></button>
-    <button id="btnAgain" class="ib" type="button" aria-label="Run again: reload without the cache and measure" title="Run again (reload without the cache)" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></button>
+    <button id="btnAgain" class="ib" type="button" aria-label="Run the same test again" title="Run the same test again" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></button>
     <button id="btnMenu" class="ib" type="button" aria-label="Other tests" title="Other tests" aria-expanded="false" aria-controls="launch" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
   </header>
 
@@ -22,12 +22,19 @@
 
   <main id="main">
     <section id="launch" class="launch" aria-label="Run a test">
-      <p class="tag">I work out why a page feels slow. Then you hand my report to an AI.</p>
-      <button id="btnReload" class="ds-btn" type="button" title="Reload this tab bypassing the cache, then analyze it">Reload &amp; analyze</button>
-      <button id="btnTab" class="ds-btn ds-btn--outline" type="button" title="Analyze what this tab has already loaded (cache may be warm)">Analyze as loaded</button>
-      <div class="urlrow">
-        <input id="urlInput" type="text" aria-label="Domain or URL to test" placeholder="Or test a URL, like example.com" spellcheck="false">
-        <button id="btnUrl" class="ds-btn ds-btn--outline" type="button">Test</button>
+      <p class="tag"><strong>Find out why a page feels slow.</strong> WhySlow times how this page loads, ranks the likely causes (slow server, render-blocking files, heavy scripts, third parties) and writes a report you can paste into an AI to get fixes.</p>
+      <button id="btnReload" class="ds-btn mbtn" type="button" title="Reload this tab with the cache bypassed, then measure it"><span class="mt">Cold load</span><span class="ms">First visit · reloads, skipping the cache</span></button>
+      <button id="btnWarm" class="ds-btn ds-btn--outline mbtn" type="button" title="Reload this tab normally, using the browser cache, then measure it"><span class="mt">Warm load</span><span class="ms">Repeat visit · reloads, using the cache</span></button>
+      <button id="btnTab" class="linkbtn" type="button" title="Measure what this tab already loaded. Cache state unknown.">Or measure as it is, without reloading</button>
+      <div class="urltest">
+        <label class="ulbl" for="urlInput">Test another page</label>
+        <div class="urlrow">
+          <input id="urlInput" type="text" inputmode="url" list="recentUrls" placeholder="example.com/shop" spellcheck="false" autocomplete="off" aria-describedby="urlHint urlErr">
+          <button id="btnUrl" class="ds-btn ds-btn--outline" type="button">Test</button>
+        </div>
+        <datalist id="recentUrls"></datalist>
+        <p id="urlErr" class="uerr" role="alert" hidden></p>
+        <p id="urlHint" class="uhint">Cold load in a background tab that closes when done. This tab isn't touched.</p>
       </div>
       <p class="about"><span id="ver">WhySlow</span> · Results come from one load, in this browser, on this connection. Timings vary, so repeat a test before acting on it.</p>
     </section>

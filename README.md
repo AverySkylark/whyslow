@@ -12,12 +12,13 @@ Finds out why a website feels slow. The popup shows a quick snapshot (server res
 
 ## Use
 
-- **Analyze tab**: reads what the tab has already loaded (the browser cache may have been warm).
-- **Reload & analyze**: reloads the tab bypassing the cache, then measures. Use this for a realistic first-visit result and for compression and Cache-Control checks, since response headers are only captured while the extension is running.
-- **Test URL**: loads the address in a background tab (cache bypassed), measures it, then closes the tab.
-- **Export report**: saves the diagnosis brief to your Downloads folder.
-- **Copy report**: copies the same brief to the clipboard, ready to paste into an AI chat.
-- **Export CSV**: every request with its timings, for spreadsheets.
+- **Cold load**: reloads the tab bypassing the cache, then measures. A realistic first visit, and it captures the response headers needed for compression and Cache-Control checks.
+- **Warm load**: reloads the tab normally, using the browser cache, then measures. A repeat visit; compare it with a cold load to see whether caching works.
+- **Measure the page as it is**: reads what the tab already loaded, without reloading. The cache state is unknown.
+- **Test another page**: type a domain or address; it loads cold in a background tab, is measured, and the tab closes. Pages you tested before are suggested.
+- **Copy AI brief**: copies the diagnosis brief to the clipboard, ready to paste into an AI chat. The ▴ next to it adds a question on top.
+- **Save .md**: saves the same brief to your Downloads folder.
+- **Details → Export CSV**: every request with its timings, for spreadsheets.
 - **Next, give the report to an AI** (panel above the buttons): explains the paste-into-an-AI-chat step and offers example questions (why is it slow, plain English, WordPress/CMS, message to your host, did my change help). Each copies the report with that question on top.
 
 - **Theme**: the switch next to the version label cycles auto, light and dark. Auto follows your system.

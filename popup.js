@@ -45,8 +45,9 @@ const rate = (v, k) => (!ok(v) ? '' : v <= RATE[k][0] ? 'good' : v > RATE[k][1] 
 const RATE_WORD = { good: 'Good', warn: 'Needs improvement', bad: 'Poor', '': 'n/a' };
 
 const MODE_WORD = {
-  tab: 'Page as already loaded (browser cache may have been warm, so timings can look better than a first visit)',
-  reload: 'Cold reload of the open tab (cache bypassed)',
+  tab: 'Page as already loaded, no reload (cache state unknown: it may have been a first or a repeat visit)',
+  reload: 'Cold reload of the open tab (cache bypassed, like a first visit)',
+  warm: 'Warm reload of the open tab (browser cache used, like a repeat visit)',
   url: 'Cold load in a background tab (cache bypassed)'
 };
 
@@ -215,7 +216,7 @@ function build(data) {
     }
   } else {
     add('info', 'Response headers not captured',
-      'Compression and caching checks were skipped because the extension saw none of this page\'s response headers (it was probably loaded after the page). Use "Reload & analyze" for those checks.');
+      'Compression and caching checks were skipped because the extension saw none of this page\'s response headers (it was probably loaded after the page). Use Cold load or Warm load for those checks.');
   }
   const bigImgs = all.filter((r) => r.type === 'IMG' && r.kb > 200 && !/\.(webp|avif|svg)(\?|#|$)/i.test(r.url));
   if (bigImgs.length) {
@@ -568,7 +569,7 @@ function setStatus(text, isError = false) {
 }
 
 function setBusy(busy) {
-  ['#btnTab', '#btnReload', '#btnUrl', '#btnAgain'].forEach((s) => ($(s).disabled = busy));
+  ['#btnTab', '#btnReload', '#btnWarm', '#btnUrl', '#btnAgain'].forEach((s) => ($(s).disabled = busy));
 }
 
 async function run(msg, label) {
@@ -584,6 +585,7 @@ async function run(msg, label) {
     histSel = null;
     await attachHistory(current);
     saveLast(msg.tabId || await activeTabId(), data, current.snap.id);
+    fillRecent();
     setStatus('');
     view = lastView = 'overview';
     render();
@@ -635,19 +637,53 @@ async function activeTabId() {
   return tab.id;
 }
 
-$('#btnTab').onclick = async () => run({ type: 'analyzeTab', tabId: await activeTabId() }, 'I\'m analyzing this tab.');
-$('#btnReload').onclick = async () => run({ type: 'analyzeTab', tabId: await activeTabId(), reload: true }, 'I\'m reloading without the cache, then measuring.');
+$('#btnTab').onclick = async () => run({ type: 'analyzeTab', tabId: await activeTabId() }, 'Measuring the page as it is.');
+$('#btnReload').onclick = async () => run({ type: 'analyzeTab', tabId: await activeTabId(), reload: true }, 'Cold load: reloading without the cache, then measuring.');
+$('#btnWarm').onclick = async () => run({ type: 'analyzeTab', tabId: await activeTabId(), reload: true, warm: true }, 'Warm load: reloading with the cache, then measuring.');
+// Test URL: accepts a domain, a path or a full http(s) address; checks it before opening a tab
+function urlError(text) {
+  const e = $('#urlErr');
+  e.textContent = text;
+  e.hidden = !text;
+  $('#urlInput').setAttribute('aria-invalid', String(!!text));
+}
+function cleanUrl(raw) {
+  let s = raw.trim();
+  if (!s) return { error: 'Type a web address first, like example.com.' };
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = 'https://' + s;
+  let u;
+  try { u = new URL(s); } catch (e) { return { error: 'That isn\'t a web address. Try example.com or https://example.com/page.' }; }
+  if (!/^https?:$/.test(u.protocol)) return { error: 'Only http and https pages can be tested.' };
+  if (!u.hostname.includes('.') && u.hostname !== 'localhost') return { error: 'Add the domain ending, like example.com.' };
+  return { url: u.href };
+}
 $('#btnUrl').onclick = () => {
-  let url = $('#urlInput').value.trim();
-  if (!url) { setStatus('Enter a domain or URL first.', true); return; }
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = 'https://' + url;
-  run({ type: 'testUrl', url }, 'I\'m loading ' + url + ' in a background tab.');
+  const r = cleanUrl($('#urlInput').value);
+  if (r.error) { urlError(r.error); $('#urlInput').focus(); return; }
+  urlError('');
+  $('#urlInput').value = r.url;
+  run({ type: 'testUrl', url: r.url }, 'Cold load of ' + r.url + ' in a background tab.');
 };
+$('#urlInput').addEventListener('input', () => urlError(''));
+// Suggest pages tested before (newest first); refreshed after each run
+async function fillRecent() {
+  try {
+    const all = await histLoadAll();
+    const keys = Object.keys(all).sort((a, b) => (all[b].updated || 0) - (all[a].updated || 0)).slice(0, 12);
+    $('#recentUrls').innerHTML = keys.map((k) => `<option value="${esc(k)}"></option>`).join('');
+  } catch (e) { /* suggestions are optional */ }
+}
+fillRecent();
 $('#urlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnUrl').click(); });
 
 // ---------- Popup chrome: tabs, ⋯ menu, question menu, Details ----------
 
-$('#btnAgain').onclick = () => $('#btnReload').click();
+// Run again repeats the current result's test type
+$('#btnAgain').onclick = () => {
+  const m = current ? current.mode : 'reload';
+  if (m === 'url') { $('#urlInput').value = current.url; $('#btnUrl').click(); return; }
+  $({ warm: '#btnWarm', tab: '#btnTab' }[m] || '#btnReload').click();
+};
 restoreLast();
 
 $('#tabs').onkeydown = (e) => {

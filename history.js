@@ -11,8 +11,8 @@ const HIST = {
   FILE_CAP: 150           // per-file entries stored per run (slowest and largest)
 };
 
-const MODE_SHORT = { tab: 'tab as loaded', reload: 'cold reload', url: 'cold background load' };
-const loadClass = (mode) => (mode === 'tab' ? 'warm' : 'cold');
+const MODE_SHORT = { tab: 'as loaded (no reload)', reload: 'cold reload', warm: 'warm reload', url: 'cold background load' };
+const loadClass = (mode) => (mode === 'tab' || mode === 'warm' ? 'warm' : 'cold'); // 'tab' may be either; treat as warm
 
 // Lower is better for every metric. A change only counts when it beats BOTH thresholds,
 // because the same page varies from load to load. Counts are exact, so any change counts.
@@ -181,7 +181,7 @@ function compare(base, cur) {
     warnings.push(`The earlier run was a ${MODE_SHORT[base.mode]} and this one is a ${MODE_SHORT[cur.mode]}. Warm and cold loads are not directly comparable; repeat both the same way for a fair test.`);
   }
   if (base.hdr !== cur.hdr) {
-    warnings.push('Response headers were captured in only one of the two runs, so compression and caching findings are not comparable. Use "Reload & analyze" for both.');
+    warnings.push('Response headers were captured in only one of the two runs, so compression and caching findings are not comparable. Use Cold load or Warm load for both.');
   }
   if (base.conn && cur.conn && base.conn !== cur.conn) {
     warnings.push(`The browser reported a different connection type (${base.conn} before, ${cur.conn} now), which can shift timings on its own.`);

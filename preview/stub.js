@@ -27,7 +27,7 @@
     headers: {}, mode: 'reload'
   };
   window.chrome = {
-    runtime: { getManifest: () => ({ version: ver }), sendMessage: async () => { await new Promise((ok) => setTimeout(ok, 400)); return JSON.parse(JSON.stringify(SAMPLE)); } },
+    runtime: { getManifest: () => ({ version: ver }), sendMessage: async (msg = {}) => { await new Promise((ok) => setTimeout(ok, 400)); return { ...JSON.parse(JSON.stringify(SAMPLE)), mode: msg.type === 'testUrl' ? 'url' : msg.reload ? (msg.warm ? 'warm' : 'reload') : 'tab' }; } },
     tabs: { query: async () => [{ id: 1, url: SAMPLE.url }] },
     storage: { session: (() => {
       const ss = {};
