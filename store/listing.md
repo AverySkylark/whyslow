@@ -63,7 +63,7 @@ WhySlow handles the following only on the user's device and never transmits it:
 
 Certify all three statements: data is not sold to third parties; not used or transferred for purposes unrelated to the single purpose; not used for creditworthiness or lending.
 
-**Privacy policy URL:** https://averyskylark.com/whyslow/privacy/ (page source: `site/whyslow/privacy/index.html`; keep it in step with `privacy-policy.md`)
+**Privacy policy URL:** https://averyskylark.com/whyslow-privacy (set in the Developer Dashboard 2026-11; the old `/whyslow/privacy/` address returned HTTP 500 and drew a "Purple Nickel" policy warning. Keep the page in step with `privacy-policy.md`)
 
 ## Assets
 
