@@ -354,7 +354,7 @@ function changesHtml() {
       <td>${esc(m.label)}</td>
       <td class="num">${esc(histVal(m.unit, m.before))}</td>
       <td class="num">${esc(histVal(m.unit, m.after))}</td>
-      <td class="num chg ${m.verdict}">${esc(histDelta(m))}${m.verdict === 'better' ? ' ✓ better' : m.verdict === 'worse' ? ' ✗ worse' : ''}</td></tr>`).join('');
+      ${histChgCell(m)}</tr>`).join('');
 
   const sevTag = (sev) => `<span class="pill ${sev}">${SEV_WORD[sev]}</span>`;
   const list = (title, items) => (items.length ? `<div class="chg-block"><strong>${esc(title)}</strong><ul>${items.join('')}</ul></div>` : '');
@@ -422,6 +422,18 @@ function historyHtml() {
   <div class="hint">Pages are matched by host and path; query strings are ignored.</div>`;
 }
 
+// Change cell for the popup's comparison tables: the delta on one line, the
+// percentage on a second, and a mark, so the column fits the 360 px popup.
+function histChgCell(m) {
+  const d = histDelta(m);
+  const i = d.indexOf(' (');
+  const main = i < 0 ? d : d.slice(0, i);
+  const pct = i < 0 ? '' : `<span class="pct">${esc(d.slice(i + 1))}</span>`;
+  const mark = m.verdict === 'better' ? ' <span title="better">✓</span><span class="sr">better</span>'
+    : m.verdict === 'worse' ? ' <span title="worse">✗</span><span class="sr">worse</span>' : '';
+  return `<td class="num chg ${m.verdict}"><span class="main">${esc(main)}${mark}</span>${pct}</td>`;
+}
+
 // ---------- Popup: one earlier run (summary from the saved snapshot) ----------
 
 let histSel = null; // id of the saved run being viewed in the History tab
@@ -436,7 +448,7 @@ function runHtml() {
       <td>${esc(m.label)}</td>
       <td class="num">${esc(histVal(m.unit, m.before))}</td>
       <td class="num">${esc(histVal(m.unit, m.after))}</td>
-      <td class="num chg ${m.verdict}">${esc(histDelta(m))}${m.verdict === 'better' ? ' ✓' : m.verdict === 'worse' ? ' ✗' : ''}</td></tr>`).join('');
+      ${histChgCell(m)}</tr>`).join('');
   const slow = (r.files || []).slice().sort((a, b) => (b.ms || 0) - (a.ms || 0)).slice(0, 5);
   const s = cmp.summary;
   return `<div class="pad">

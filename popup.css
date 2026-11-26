@@ -291,7 +291,13 @@ td.url { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .warnbox::before { content: "Note: "; font-weight: 500; }
 table.cmp tr.same td:not(:first-child) { color: var(--ink-muted); }
 table.cmp td, table.cmp th { padding: 4px 6px; }
-td.chg { font-weight: 500; white-space: normal; }
+/* Comparison tables must fit 360 px: measure names and headers wrap; the
+   change cell shows the delta, then the percentage on its own line. */
+table.cmp th, table.cmp td:first-child { white-space: normal; }
+td.chg { font-weight: 500; white-space: nowrap; }
+td.chg .main, td.chg .pct { display: block; }
+td.chg .pct { font-weight: 400; color: var(--ink-muted); font-size: 11px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 td.chg.same { font-weight: 400; }
 td.chg.worse { text-decoration: none; }
 .chg-block { margin-top: var(--space-8); }
