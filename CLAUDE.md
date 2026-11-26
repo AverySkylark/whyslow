@@ -33,7 +33,7 @@ It began as a port of the PowerShell script `reference/site-timing.ps1`.
 | `history.js` | Saved runs and "since the last run" comparison. Loaded before `popup.js` and shares its globals. Storage, `snapshot()`, `compare()`, popup section, history list and the report's comparison section (`changesMd()`). |
 | `icons/` | Generated PNG icons (16, 32, 48, 128). |
 | `README.md` | Install and usage notes. |
-| `store/` | Chrome Web Store listing copy (`listing.md`) and privacy policy (`privacy-policy.md`). Not part of the extension; leave out of the package zip. Keep the permission justifications and policy in step with `manifest.json` and any new data the extension stores. |
+| `store/` | Chrome Web Store listing copy (`listing.md`), privacy policy (`privacy-policy.md`), store images (`store/screenshots/`: five 1280×800 screenshots, 440×280 small tile, 1400×560 marquee, 24-bit PNG) and the scripts that make them (`store/tools/`: `shoot.py` captures every popup view in light and dark from the preview into `screenshots/`; `store.py`, `tile.py`, `marquee.py` build the store images from those; needs Python + Playwright + Pillow and `preview/serve.py` running). Not part of the extension; leave out of the package zip. Keep the permission justifications and policy in step with `manifest.json` and any new data the extension stores. |
 | `build.ps1` | Builds the Web Store zip: `.\build.ps1` (`-Force` to overwrite, `-OutDir` to change folder). Checks the manifest, required files, that everything popup.html loads is packed, and JS syntax (if Node is installed). Packs an allow-list (`$Files`, `$Dirs`): add new extension files there. Not part of the extension. |
 | `package.py` | Older Python packager; same allow-list idea but still packs `fonts/`. Superseded by `build.ps1`. |
 | `reference/site-timing.ps1` | Original PowerShell script. Not part of the extension; kept for reference. |
@@ -116,4 +116,5 @@ It began as a port of the PowerShell script `reference/site-timing.ps1`.
 - Export/import of saved history as JSON.
 - Waterfall chart of request timing.
 - Optional report sections for server hints (response headers such as Server, X-Powered-By, cache plugins) to help AI infer CMS/PHP causes.
-- Chrome Web Store: listing copy and privacy policy are drafted in `store/`; still needed are screenshots, promo tile, a hosted privacy policy URL and the developer registration.
+- Fix: History tab's then-vs-now table is too wide at 360 px; the Change column is clipped ("no change" wraps and is cut off). Fix before uploading store images, then re-run `store/tools/shoot.py` and `store.py`.
+- Chrome Web Store: listing copy, privacy policy, screenshots, small promo tile and marquee are done in `store/`. The item is registered and the privacy policy is hosted at https://averyskylark.com/whyslow-privacy (the old `/whyslow/privacy/` address returned HTTP 500 and drew a policy warning in 2026-11).
